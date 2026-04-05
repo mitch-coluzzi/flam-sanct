@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 
-from api.routers import auth, admin
+from api.routers import auth, admin, daily_logs, workouts, stoic
 
 
 @asynccontextmanager
@@ -42,6 +42,9 @@ def get_supabase() -> Client:
 # Mount routers
 app.include_router(auth.router, prefix="/v1")
 app.include_router(admin.router, prefix="/v1")
+app.include_router(daily_logs.router, prefix="/v1")
+app.include_router(workouts.router, prefix="/v1")
+app.include_router(stoic.router, prefix="/v1")
 
 
 @app.get("/health")
