@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { supabase } from "../lib/supabase";
-import { api } from "../lib/api";
-import type { Session, User as AuthUser } from "@supabase/supabase-js";
+import type { Session } from "@supabase/supabase-js";
 
 interface UserProfile {
   id: string;
@@ -33,9 +32,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setSession: (session) => set({ session, loading: false }),
 
   fetchProfile: async () => {
-    const res = await api<UserProfile>("GET", "/users/me");
-    if (res.data) {
-      set({ profile: res.data });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    if (data) {
+      set({ profile: data as UserProfile });
     }
   },
 

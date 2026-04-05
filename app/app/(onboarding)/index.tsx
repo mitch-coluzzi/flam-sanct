@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import * as Notifications from "expo-notifications";
 import { api } from "../../lib/api";
 import { useAuthStore } from "../../store/auth";
 
@@ -36,40 +35,39 @@ export default function OnboardingScreen() {
   };
 
   const requestPush = async () => {
-    try {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status === "granted") {
-        const token = (
-          await Notifications.getExpoPushTokenAsync()
-        ).data;
-        await api("PATCH", "/users/me", { push_token: token });
-      }
-    } catch {}
+    // Push notifications require a dev build — skip in Expo Go
+    // Will wire up expo-notifications when building with EAS
     next();
   };
 
   const finish = async () => {
     setSaving(true);
-    const updates: Record<string, any> = {
-      display_name: displayName.trim() || undefined,
-      timezone,
-      weight_unit: weightUnit,
-      onboarded_at: true,
-    };
-    const res = await api("PATCH", "/users/me", updates);
-    if (res.error) {
-      Alert.alert("Error", res.error.message);
-      setSaving(false);
-      return;
-    }
 
-    // Log initial weight if provided
-    if (weight) {
-      const today = new Date().toISOString().split("T")[0];
-      await api("GET", `/daily-logs/${today}`); // lazy create
-      await api("PATCH", `/daily-logs/${today}`, {
-        weight_lbs: weightUnit === "kg" ? parseFloat(weight) * 2.20462 : parseFloat(weight),
-      });
+    // Write directly to Supabase until FastAPI is deployed
+    const { supabase } = await import("../../lib/supabase");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const updates: Record<string, any> = {
+        display_name: displayName.trim() || null,
+        timezone,
+        weight_unit: weightUnit,
+        onboarded_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      await supabase.from("users").update(updates).eq("id", user.id);
+
+      // Log initial weight if provided
+      if (weight) {
+        const today = new Date().toISOString().split("T")[0];
+        const weightLbs = weightUnit === "kg"
+          ? parseFloat(weight) * 2.20462
+          : parseFloat(weight);
+        await supabase.from("daily_logs").upsert({
+          user_id: user.id,
+          log_date: today,
+          weight_lbs: weightLbs,
+        }, { onConflict: "user_id,log_date" });
+      }
     }
 
     await fetchProfile();
