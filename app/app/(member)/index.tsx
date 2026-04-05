@@ -274,7 +274,7 @@ export default function TodayScreen() {
   ];
   const moodLabel = (v: number | null) => MOOD_SCALE.find((m) => m.value === v)?.label || "";
   const moodColor = (v: number | null) => MOOD_SCALE.find((m) => m.value === v)?.color || "#5C5A54";
-  const SLEEP_Q = ["", "Terrible", "Poor", "Fair", "Good", "Excellent"];
+  const SLEEP_Q: Record<number, string> = { [-2]: "Terrible", [-1]: "Poor", [0]: "Average", [1]: "Good", [2]: "Excellent" };
 
   return (
     <ScrollView style={s.container} contentContainerStyle={{ paddingBottom: 48 }}>
@@ -290,29 +290,30 @@ export default function TodayScreen() {
         <View style={s.card}>
           <Text style={s.cardTitle}>Morning Check-In</Text>
 
-          <Text style={s.label}>Sleep (hours)</Text>
-          <TextInput
-            style={s.input}
-            placeholder="7.5"
-            placeholderTextColor="#5C5A54"
-            value={sleepHours}
-            onChangeText={setSleepHours}
-            keyboardType="numeric"
-          />
-
-          <Text style={s.label}>Sleep quality</Text>
-          <View style={s.chipRow}>
-            {[1, 2, 3, 4, 5].map((v) => (
-              <TouchableOpacity
-                key={v}
-                style={[s.chip, sleepQuality === v && s.chipActive]}
-                onPress={() => setSleepQuality(v)}
-              >
-                <Text style={[s.chipText, sleepQuality === v && s.chipTextActive]}>
-                  {v}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <Text style={s.label}>Sleep</Text>
+          <View style={s.sleepRow}>
+            <TextInput
+              style={[s.input, { flex: 1, marginBottom: 0 }]}
+              placeholder="7.5"
+              placeholderTextColor="#5C5A54"
+              value={sleepHours}
+              onChangeText={setSleepHours}
+              keyboardType="numeric"
+            />
+            <Text style={s.sleepUnit}>hrs</Text>
+            <View style={s.sleepQualityRow}>
+              {([-2, -1, 0, 1, 2] as const).map((v) => (
+                <TouchableOpacity
+                  key={v}
+                  style={[s.sqChip, sleepQuality === v && s.sqChipActive]}
+                  onPress={() => setSleepQuality(v)}
+                >
+                  <Text style={[s.sqText, sleepQuality === v && s.sqTextActive]}>
+                    {v > 0 ? `+${v}` : v}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
 
           <Text style={s.label}>Weight ({profile?.weight_unit || "lbs"})</Text>
@@ -376,7 +377,7 @@ export default function TodayScreen() {
           </View>
           {log?.sleep_hours && (
             <Text style={s.statLine}>
-              Sleep: {log.sleep_hours}h · Quality: {SLEEP_Q[log.sleep_quality || 0]}
+              Sleep: {log.sleep_hours}h · Quality: {SLEEP_Q[log.sleep_quality ?? 0] || "Average"}
             </Text>
           )}
           {log?.mood !== null && log?.mood !== undefined && (
@@ -649,6 +650,20 @@ const s = StyleSheet.create({
   workoutRow: { marginBottom: 10, paddingBottom: 10, borderBottomWidth: 0.5, borderBottomColor: "#3D3C38" },
   workoutType: { fontSize: 15, fontWeight: "600", color: "#F0EDE6" },
   workoutMeta: { fontSize: 13, color: "#9C9A94", marginTop: 2 },
+  sleepRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  sleepUnit: { fontSize: 13, color: "#9C9A94", fontWeight: "600" },
+  sleepQualityRow: { flexDirection: "row", gap: 3 },
+  sqChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    borderRadius: 6,
+    backgroundColor: "#1C1C1A",
+    borderWidth: 0.5,
+    borderColor: "#5C5A54",
+  },
+  sqChipActive: { backgroundColor: "#C0632A", borderColor: "#C0632A" },
+  sqText: { color: "#9C9A94", fontSize: 12, fontWeight: "600" },
+  sqTextActive: { color: "#1C1C1A" },
   moodDisplay: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
   crisisCard: {
     backgroundColor: "#3D2A2A",
