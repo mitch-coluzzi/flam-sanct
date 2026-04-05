@@ -202,15 +202,16 @@ Updated at the end of each Claude Code session.
 | FS-3 | 2026-04-05 | 0.5.0 | Food log CRUD, photo capture w/ Claude Vision, chef affirm/adjust, USDA proxy, chef recipes, chef meal logging. |
 | FS-4 | 2026-04-05 | 0.6.0 | Chef dashboard (members summary, pending affirms, directives + acknowledge), auto-DM on chef assignment. |
 | FS-5 | 2026-04-05 | 0.7.0 | AI query endpoint (10/day), anomaly detection job, weekly digest job, member context builder, push notifications. |
+| FS-6 | 2026-04-05 | 0.8.0 | Benchmarks (8 seeded), PR detection + push, benchmark results w/ trends, weight chart, progress summary. Schema: secondary_value/unit. |
 
 ---
 
 ## 8. Current Build State
 
-**Platform Version:** 0.7.0
-**Last Claude Code Session:** FS-5 (2026-04-05)
-**Current Step:** Step 6 complete. Ready for Step 7.
-**Next Action:** FS-6 — Benchmark endpoints, PR detection, progress screen, weight chart. Apply benchmark schema amendment (secondary_value/unit columns + seed data).
+**Platform Version:** 0.8.0
+**Last Claude Code Session:** FS-6 (2026-04-05)
+**Current Step:** Step 7 complete. Ready for Step 8.
+**Next Action:** FS-7 — Community feed endpoints, Flam reaction, Supabase Realtime DM, messages screens.
 
 ---
 
@@ -239,6 +240,7 @@ Increment on each Claude Code session that produces shippable code.
 | 0.5.0 | 2026-04-05 | FS-3 complete. Food logs, photo capture + Vision, USDA proxy, chef recipes, chef meal logging, daily macro totals. |
 | 0.6.0 | 2026-04-05 | FS-4 complete. Chef dashboard, pending affirms, directives + acknowledge, auto-DM on assignment. |
 | 0.7.0 | 2026-04-05 | FS-5 complete. AI query (10/day), anomaly detection, weekly digest, context builder, push notifications service. |
+| 0.8.0 | 2026-04-05 | FS-6 complete. 8 benchmarks seeded, PR detection + push, secondary_value/unit columns, weight trend, progress summary. |
 
 **Versioning convention:**
 `0.X.0` — major spec or architecture additions during pre-launch
