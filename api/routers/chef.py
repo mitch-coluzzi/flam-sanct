@@ -1,11 +1,12 @@
-"""Chef endpoints — recipes + meal logging for members — FS-3 §2."""
+"""Chef endpoints — recipes, meal logging, dashboard, directives — FS-3/FS-4."""
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, Request, HTTPException
 from pydantic import BaseModel
 
 from api.dependencies.auth import require_role
+from api.services.nutrition import compute_daily_totals
 
 router = APIRouter(prefix="/chef", tags=["chef"])
 chef_or_admin = require_role(["chef", "admin"])
@@ -199,3 +200,161 @@ async def chef_log_meal(
 
     result = sb.table("food_logs").insert(rows).execute()
     return {"data": result.data, "error": None, "meta": {"timestamp": now}}
+
+
+# ── Dashboard ──
+
+@router.get("/members")
+async def list_chef_members(
+    request: Request,
+    user: dict = Depends(chef_or_admin),
+):
+    """List assigned members with today's summary."""
+    sb = request.app.state.supabase
+    now = datetime.now(timezone.utc).isoformat()
+    today = date.today().isoformat()
+
+    # Get active assignments
+    assignments = (
+        sb.table("chef_assignments")
+        .select("member_id, member:users!chef_assignments_member_id_fkey(full_name, display_name, avatar_url)")
+        .eq("chef_id", user["user_id"])
+        .eq("active", True)
+        .execute()
+    )
+
+    members = []
+    for a in (assignments.data or []):
+        mid = a["member_id"]
+        member = a.get("member", {})
+
+        # Today's food logs
+        foods = (
+            sb.table("food_logs")
+            .select("calories, meal_type, photo_capture_status")
+            .eq("user_id", mid)
+            .eq("log_date", today)
+            .execute()
+        )
+        food_data = foods.data or []
+        totals = compute_daily_totals(food_data)
+
+        # Today's workout calories
+        workouts = (
+            sb.table("workouts")
+            .select("estimated_calories_burned")
+            .eq("user_id", mid)
+            .eq("log_date", today)
+            .execute()
+        )
+        calories_out = sum(w.get("estimated_calories_burned") or 0 for w in (workouts.data or []))
+
+        # Active directives
+        directives = (
+            sb.table("dietary_directives")
+            .select("id", count="exact")
+            .eq("chef_id", user["user_id"])
+            .eq("member_id", mid)
+            .eq("is_active", True)
+            .execute()
+        )
+
+        members.append({
+            "user_id": mid,
+            "display_name": member.get("display_name") or member.get("full_name", ""),
+            "avatar_url": member.get("avatar_url"),
+            "today": {
+                "calories_in": totals["calories_in"],
+                "calories_out": calories_out,
+                "meals_logged": totals["meals_logged"],
+                "pending_photo_affirms": totals["pending_affirm_count"],
+                "active_directives": directives.count or 0,
+            },
+        })
+
+    return {"data": members, "error": None, "meta": {"timestamp": now}}
+
+
+@router.get("/pending-affirms")
+async def list_pending_affirms(
+    request: Request,
+    user: dict = Depends(chef_or_admin),
+):
+    """All pending photo captures across assigned members."""
+    sb = request.app.state.supabase
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Get assigned member IDs
+    assignments = (
+        sb.table("chef_assignments")
+        .select("member_id")
+        .eq("chef_id", user["user_id"])
+        .eq("active", True)
+        .execute()
+    )
+    member_ids = [a["member_id"] for a in (assignments.data or [])]
+
+    if not member_ids:
+        return {"data": [], "error": None, "meta": {"timestamp": now}}
+
+    pending = (
+        sb.table("food_logs")
+        .select("*, member:users!food_logs_user_id_fkey(display_name, full_name)")
+        .in_("user_id", member_ids)
+        .eq("photo_capture_status", "pending")
+        .order("created_at")
+        .execute()
+    )
+
+    return {"data": pending.data, "error": None, "meta": {"timestamp": now}}
+
+
+@router.get("/directives")
+async def list_chef_directives(
+    request: Request,
+    user: dict = Depends(chef_or_admin),
+):
+    """Active dietary directives for chef's assigned members."""
+    sb = request.app.state.supabase
+    now = datetime.now(timezone.utc).isoformat()
+
+    result = (
+        sb.table("dietary_directives")
+        .select("*, member:users!dietary_directives_member_id_fkey(display_name, full_name)")
+        .eq("chef_id", user["user_id"])
+        .eq("is_active", True)
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    return {"data": result.data, "error": None, "meta": {"timestamp": now}}
+
+
+@router.patch("/directives/{directive_id}/acknowledge")
+async def acknowledge_directive(
+    directive_id: str,
+    request: Request,
+    user: dict = Depends(chef_or_admin),
+):
+    """Chef marks a directive as seen."""
+    sb = request.app.state.supabase
+    now = datetime.now(timezone.utc).isoformat()
+
+    existing = (
+        sb.table("dietary_directives")
+        .select("id")
+        .eq("id", directive_id)
+        .eq("chef_id", user["user_id"])
+        .limit(1)
+        .execute()
+    )
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Directive not found")
+
+    result = (
+        sb.table("dietary_directives")
+        .update({"chef_acknowledged_at": now})
+        .eq("id", directive_id)
+        .execute()
+    )
+    return {"data": result.data[0] if result.data else None, "error": None, "meta": {"timestamp": now}}

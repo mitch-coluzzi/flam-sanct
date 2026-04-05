@@ -107,6 +107,30 @@ async def create_chef_assignment(
         })
         .execute()
     )
+
+    # Auto-create DM conversation between chef and member
+    chef_name_result = sb.table("users").select("full_name").eq("id", body.chef_id).single().execute()
+    chef_name = chef_name_result.data.get("full_name", "Your chef") if chef_name_result.data else "Your chef"
+
+    conv = sb.table("conversations").insert({
+        "conversation_type": "dm",
+        "created_by": user["user_id"],
+    }).execute()
+
+    if conv.data:
+        conv_id = conv.data[0]["id"]
+        sb.table("conversation_participants").insert([
+            {"conversation_id": conv_id, "user_id": body.chef_id},
+            {"conversation_id": conv_id, "user_id": body.member_id},
+        ]).execute()
+
+        sb.table("messages").insert({
+            "conversation_id": conv_id,
+            "sender_id": user["user_id"],
+            "body": f"Chef {chef_name} has been assigned to your nutrition. You can message them directly here.",
+            "message_type": "system",
+        }).execute()
+
     return {"data": result.data[0] if result.data else None, "error": None, "meta": {"timestamp": now}}
 
 

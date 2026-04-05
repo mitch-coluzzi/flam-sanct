@@ -200,15 +200,16 @@ Updated at the end of each Claude Code session.
 | FS-1 | 2026-04-05 | 0.3.0 | Auth trigger, 29 RLS policies, custom claims edge function, FastAPI skeleton (auth dep, profile, admin endpoints). |
 | FS-2 | 2026-04-05 | 0.4.0 | Daily log CRUD, workout CRUD w/ calorie burn, Stoic passage selection + AI frame, 3 services (calorie_burn, stoic, claude). |
 | FS-3 | 2026-04-05 | 0.5.0 | Food log CRUD, photo capture w/ Claude Vision, chef affirm/adjust, USDA proxy, chef recipes, chef meal logging. |
+| FS-4 | 2026-04-05 | 0.6.0 | Chef dashboard (members summary, pending affirms, directives + acknowledge), auto-DM on chef assignment. |
 
 ---
 
 ## 8. Current Build State
 
-**Platform Version:** 0.5.0
-**Last Claude Code Session:** FS-3 (2026-04-05)
-**Current Step:** Step 4 complete. Ready for Step 5.
-**Next Action:** FS-4 — Chef dashboard endpoints, photo affirmation screen logic, directive acknowledgment, chef↔member DM auto-creation.
+**Platform Version:** 0.6.0
+**Last Claude Code Session:** FS-4 (2026-04-05)
+**Current Step:** Step 5 complete. Ready for Step 6.
+**Next Action:** FS-5 — Claude AI service, on-demand query endpoint, anomaly detection job, weekly digest job.
 
 ---
 
@@ -235,6 +236,7 @@ Increment on each Claude Code session that produces shippable code.
 | 0.3.0 | 2026-04-05 | FS-1 complete. Auth trigger, 29 RLS policies, FastAPI skeleton, profile + admin endpoints. |
 | 0.4.0 | 2026-04-05 | FS-2 complete. Daily logs, workouts, Stoic passage selection, AI frame generation, calorie burn model. |
 | 0.5.0 | 2026-04-05 | FS-3 complete. Food logs, photo capture + Vision, USDA proxy, chef recipes, chef meal logging, daily macro totals. |
+| 0.6.0 | 2026-04-05 | FS-4 complete. Chef dashboard, pending affirms, directives + acknowledge, auto-DM on assignment. |
 
 **Versioning convention:**
 `0.X.0` — major spec or architecture additions during pre-launch
