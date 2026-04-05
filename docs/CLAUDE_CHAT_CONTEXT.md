@@ -150,6 +150,7 @@ Items not yet locked. Discuss in future design sessions.
 |---|---|---|
 | 1.0 | 2026-04-05 | Founding design session. Full product concept locked. Stack locked. All 8 specs written. Both context files created. |
 | 1.1 | 2026-04-05 | FS-0 build complete. All 20 tables, RLS, 14 indexes, 3 storage buckets deployed to Supabase. |
+| 1.2 | 2026-04-05 | FS-1 build complete. Auth trigger, 29 RLS policies, custom claims edge function, FastAPI skeleton with auth + profile + admin endpoints. |
 
 ---
 
