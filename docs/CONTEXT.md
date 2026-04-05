@@ -204,15 +204,16 @@ Updated at the end of each Claude Code session.
 | FS-5 | 2026-04-05 | 0.7.0 | AI query endpoint (10/day), anomaly detection job, weekly digest job, member context builder, push notifications. |
 | FS-6 | 2026-04-05 | 0.8.0 | Benchmarks (8 seeded), PR detection + push, benchmark results w/ trends, weight chart, progress summary. Schema: secondary_value/unit. |
 | FS-7 | 2026-04-05 | 0.9.0 | Community feed (posts, Flam reactions, replies), DM conversations (create, list, send, mark read). 51 business endpoints. |
+| Expo | 2026-04-05 | 0.95.0 | Expo app scaffolded. Auth screens (login/signup), 5-step onboarding, member tabs (6), chef tabs (3), admin stack. Brand palette applied. |
 
 ---
 
 ## 8. Current Build State
 
-**Platform Version:** 0.9.0
-**Last Claude Code Session:** FS-7 (2026-04-05)
-**Current Step:** All 8 specs built. Backend API complete.
-**Next Action:** Expo app scaffolding, Railway deployment, or end-to-end testing.
+**Platform Version:** 0.95.0
+**Last Claude Code Session:** Expo scaffold (2026-04-05)
+**Current Step:** Expo app scaffolded. Auth + onboarding built. Placeholder screens for all tabs.
+**Next Action:** Run `npm install` from PowerShell. Build out member Today screen (check-in card, workout sheet, food summary, Stoic card).
 
 ---
 
@@ -243,6 +244,7 @@ Increment on each Claude Code session that produces shippable code.
 | 0.7.0 | 2026-04-05 | FS-5 complete. AI query (10/day), anomaly detection, weekly digest, context builder, push notifications service. |
 | 0.8.0 | 2026-04-05 | FS-6 complete. 8 benchmarks seeded, PR detection + push, secondary_value/unit columns, weight trend, progress summary. |
 | 0.9.0 | 2026-04-05 | FS-7 complete. Community feed, Flam reactions, replies, DM conversations, messages. All 8 specs built. 51 business endpoints. |
+| 0.95.0 | 2026-04-05 | Expo scaffold. Auth (login/signup), 5-step onboarding, member/chef/admin routing, brand palette applied. |
 
 **Versioning convention:**
 `0.X.0` — major spec or architecture additions during pre-launch

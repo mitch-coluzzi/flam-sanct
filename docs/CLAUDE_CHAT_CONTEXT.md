@@ -157,6 +157,7 @@ Items not yet locked. Discuss in future design sessions.
 | 1.6 | 2026-04-05 | FS-5 build complete. On-demand AI query (10/day rate limit), anomaly detection job (6 threshold conditions), weekly digest job, full member context builder, Expo push notification service. |
 | 1.7 | 2026-04-05 | FS-6 build complete. 8 benchmarks seeded (bridge amendment applied), PR detection with push, secondary_value/unit for ruck, weight trend endpoint, progress summary. |
 | 1.8 | 2026-04-05 | FS-7 build complete. Community feed (posts/reactions/replies), DM conversations (create/list/send/read). ALL 8 SPECS BUILT. 51 business endpoints. Backend API complete. |
+| 1.9 | 2026-04-05 | Expo app scaffolded. Auth screens (login/signup), 5-step onboarding, member tabs (6), chef tabs (3), admin stack. Supabase client + Zustand + React Query + auth hook. Brand palette from FLAMSANCT_BRAND_BRIEF.md applied to all screens. |
 
 ---
 
