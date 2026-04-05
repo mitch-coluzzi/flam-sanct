@@ -205,15 +205,16 @@ Updated at the end of each Claude Code session.
 | FS-6 | 2026-04-05 | 0.8.0 | Benchmarks (8 seeded), PR detection + push, benchmark results w/ trends, weight chart, progress summary. Schema: secondary_value/unit. |
 | FS-7 | 2026-04-05 | 0.9.0 | Community feed (posts, Flam reactions, replies), DM conversations (create, list, send, mark read). 51 business endpoints. |
 | Expo | 2026-04-05 | 0.95.0 | Expo app scaffolded. Auth screens (login/signup), 5-step onboarding, member tabs (6), chef tabs (3), admin stack. Brand palette applied. |
+| Screens | 2026-04-05 | 0.96.0 | All member screens built: Today (check-in, workout log, nutrition, Stoic), History (day list + detail), Progress (weight, benchmarks, streak), Community (feed + Flam + compose), Messages (DM list + chat), Ask (AI query stub). Railway config added. |
 
 ---
 
 ## 8. Current Build State
 
-**Platform Version:** 0.95.0
-**Last Claude Code Session:** Expo scaffold (2026-04-05)
-**Current Step:** Expo app scaffolded. Auth + onboarding built. Placeholder screens for all tabs.
-**Next Action:** Run `npm install` from PowerShell. Build out member Today screen (check-in card, workout sheet, food summary, Stoic card).
+**Platform Version:** 0.96.0
+**Last Claude Code Session:** Member screens (2026-04-05)
+**Current Step:** All member screens functional against Supabase. Railway config ready.
+**Next Action:** Deploy FastAPI to Railway. Wire app to live API. Build chef screens.
 
 ---
 
@@ -245,6 +246,7 @@ Increment on each Claude Code session that produces shippable code.
 | 0.8.0 | 2026-04-05 | FS-6 complete. 8 benchmarks seeded, PR detection + push, secondary_value/unit columns, weight trend, progress summary. |
 | 0.9.0 | 2026-04-05 | FS-7 complete. Community feed, Flam reactions, replies, DM conversations, messages. All 8 specs built. 51 business endpoints. |
 | 0.95.0 | 2026-04-05 | Expo scaffold. Auth (login/signup), 5-step onboarding, member/chef/admin routing, brand palette applied. |
+| 0.96.0 | 2026-04-05 | All member screens built. Today, History, Progress, Community, Messages, Ask FlamSanct. Railway config. |
 
 **Versioning convention:**
 `0.X.0` — major spec or architecture additions during pre-launch

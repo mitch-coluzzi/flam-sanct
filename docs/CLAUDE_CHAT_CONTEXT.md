@@ -158,6 +158,7 @@ Items not yet locked. Discuss in future design sessions.
 | 1.7 | 2026-04-05 | FS-6 build complete. 8 benchmarks seeded (bridge amendment applied), PR detection with push, secondary_value/unit for ruck, weight trend endpoint, progress summary. |
 | 1.8 | 2026-04-05 | FS-7 build complete. Community feed (posts/reactions/replies), DM conversations (create/list/send/read). ALL 8 SPECS BUILT. 51 business endpoints. Backend API complete. |
 | 1.9 | 2026-04-05 | Expo app scaffolded. Auth screens (login/signup), 5-step onboarding, member tabs (6), chef tabs (3), admin stack. Supabase client + Zustand + React Query + auth hook. Brand palette from FLAMSANCT_BRAND_BRIEF.md applied to all screens. |
+| 2.0 | 2026-04-05 | All member screens built with live Supabase: Today (check-in, workout modal, nutrition summary, Stoic reflection), History (day list w/ detail expand), Progress (weight delta, benchmarks w/ PR detection, streak), Community (feed, Flam toggle, compose), Messages (conversation list, DM chat), Ask FlamSanct (AI query stub). Railway deployment config added. |
 
 ---
 
