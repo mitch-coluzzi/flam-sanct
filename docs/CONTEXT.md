@@ -1,7 +1,7 @@
 # FlamSanct — Claude Code Context
 **Version:** 1.0
 **Last Updated:** 2026-04-05
-**Platform Version:** 0.1.0 (pre-build)
+**Platform Version:** 0.2.0
 **Purpose:** Claude Code build session context. Load at the start of every Claude Code session. Do not use for design sessions — use CLAUDE_CHAT_CONTEXT.md instead.
 
 ---
@@ -196,15 +196,16 @@ Updated at the end of each Claude Code session.
 | Session | Date | Version | Completed |
 |---|---|---|---|
 | — | 2026-04-05 | 0.1.0 | All specs written. Context files created. No code yet. |
+| FS-0 | 2026-04-05 | 0.2.0 | All 20 tables created. RLS enabled on all. 14 indexes. 3 storage buckets (avatars, food-photos, community). |
 
 ---
 
 ## 8. Current Build State
 
-**Platform Version:** 0.1.0
-**Last Claude Code Session:** None yet
-**Current Step:** Step 1 — Supabase project setup and migrations
-**Next Action:** Create Supabase project. Run FS-0 migrations. Configure storage buckets. Set environment variables.
+**Platform Version:** 0.2.0
+**Last Claude Code Session:** FS-0 (2026-04-05)
+**Current Step:** Step 1 complete. Ready for Step 2.
+**Next Action:** FS-1 — Supabase Auth config, database trigger, custom claims edge function, FastAPI skeleton + auth dependency.
 
 ---
 
@@ -227,6 +228,7 @@ Increment on each Claude Code session that produces shippable code.
 | Version | Date | Notes |
 |---|---|---|
 | 0.1.0 | 2026-04-05 | Pre-build. Specs and context files only. |
+| 0.2.0 | 2026-04-05 | FS-0 complete. 20 tables, RLS, indexes, 3 storage buckets. |
 
 **Versioning convention:**
 `0.X.0` — major spec or architecture additions during pre-launch

@@ -1,5 +1,5 @@
 # FlamSanct — Claude Chat Context
-**Version:** 1.0
+**Version:** 1.1
 **Last Updated:** 2026-04-05
 **Purpose:** Design session context. Load this file at the start of any Claude.ai design session for FlamSanct. Do not use for Claude Code sessions — use docs/CONTEXT.md instead.
 
@@ -149,6 +149,7 @@ Items not yet locked. Discuss in future design sessions.
 | Version | Date | Session Summary |
 |---|---|---|
 | 1.0 | 2026-04-05 | Founding design session. Full product concept locked. Stack locked. All 8 specs written. Both context files created. |
+| 1.1 | 2026-04-05 | FS-0 build complete. All 20 tables, RLS, 14 indexes, 3 storage buckets deployed to Supabase. |
 
 ---
 
