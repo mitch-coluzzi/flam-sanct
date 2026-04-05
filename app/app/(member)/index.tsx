@@ -11,8 +11,10 @@ import {
   Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useAuthStore } from "../../store/auth";
 import { supabase } from "../../lib/supabase";
+import { decode } from "base64-arraybuffer";
 
 interface DailyLog {
   id: string;
@@ -69,6 +71,10 @@ export default function TodayScreen() {
   const [wAo, setWAo] = useState("");
   const [wQ, setWQ] = useState("");
   const [wSaving, setWSaving] = useState(false);
+
+  // Photo capture
+  const [photoCapturing, setPhotoCapturing] = useState(false);
+  const [pendingPhotos, setPendingPhotos] = useState<any[]>([]);
 
   // Reflection
   const [reflection, setReflection] = useState("");
@@ -130,10 +136,67 @@ export default function TodayScreen() {
       .eq("log_date", TODAY);
     setCaloriesIn((fData || []).reduce((sum, f) => sum + (f.calories || 0), 0));
 
+    // Pending photo captures
+    const { data: pData } = await supabase
+      .from("food_logs")
+      .select("id, food_name, calories, photo_url, photo_capture_status, ai_portion_estimate")
+      .eq("user_id", userId)
+      .eq("log_date", TODAY)
+      .eq("source", "photo_capture")
+      .order("created_at", { ascending: false });
+    setPendingPhotos(pData || []);
+
     setLoading(false);
   }, [userId]);
 
   useEffect(() => { loadToday(); }, [loadToday]);
+
+  const captureFood = async (mealType: string) => {
+    if (!userId) return;
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Camera permission required");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      quality: 0.7,
+      base64: true,
+    });
+
+    if (result.canceled || !result.assets?.[0]) return;
+    setPhotoCapturing(true);
+
+    const asset = result.assets[0];
+    const ext = asset.uri.split(".").pop() || "jpg";
+    const path = `${userId}/${TODAY}_${mealType}_${Date.now()}.${ext}`;
+
+    // Upload to Supabase Storage
+    if (asset.base64) {
+      await supabase.storage.from("food-photos").upload(path, decode(asset.base64), {
+        contentType: `image/${ext === "png" ? "png" : "jpeg"}`,
+      });
+    }
+
+    const photoUrl = `${supabase.supabaseUrl}/storage/v1/object/food-photos/${path}`;
+
+    // Create food log with placeholder — Claude Vision estimation requires backend
+    await supabase.from("food_logs").insert({
+      user_id: userId,
+      log_date: TODAY,
+      meal_type: mealType,
+      source: "photo_capture",
+      food_name: "Photo capture — pending review",
+      photo_url: photoUrl,
+      photo_capture_status: "pending",
+      ai_portion_estimate: null,
+    });
+
+    setPhotoCapturing(false);
+    Alert.alert("Photo captured", "Your chef will review and confirm this shortly.");
+    loadToday();
+  };
 
   const submitCheckIn = async () => {
     if (!userId || !log) return;
@@ -359,7 +422,27 @@ export default function TodayScreen() {
 
       {/* ── Food Summary ── */}
       <View style={s.card}>
-        <Text style={s.cardTitle}>Nutrition</Text>
+        <View style={s.cardRow}>
+          <Text style={s.cardTitle}>Nutrition</Text>
+          <TouchableOpacity
+            onPress={() => {
+              Alert.alert("Snap Food Photo", "Which meal?", [
+                { text: "Breakfast", onPress: () => captureFood("breakfast") },
+                { text: "Lunch", onPress: () => captureFood("lunch") },
+                { text: "Dinner", onPress: () => captureFood("dinner") },
+                { text: "Snack", onPress: () => captureFood("snack") },
+                { text: "Cancel", style: "cancel" },
+              ]);
+            }}
+            disabled={photoCapturing}
+          >
+            {photoCapturing ? (
+              <ActivityIndicator size="small" color="#C0632A" />
+            ) : (
+              <Ionicons name="camera" size={22} color="#C0632A" />
+            )}
+          </TouchableOpacity>
+        </View>
         <View style={s.statsRow}>
           <View style={s.stat}>
             <Text style={s.statNum}>{caloriesIn}</Text>
@@ -374,6 +457,26 @@ export default function TodayScreen() {
             <Text style={s.statLabel}>NET</Text>
           </View>
         </View>
+
+        {/* Pending photo captures */}
+        {pendingPhotos.length > 0 && (
+          <View style={s.pendingSection}>
+            <Text style={s.pendingLabel}>
+              {pendingPhotos.filter((p) => p.photo_capture_status === "pending").length} awaiting review
+            </Text>
+            {pendingPhotos.map((p) => (
+              <View key={p.id} style={s.pendingRow}>
+                <Ionicons
+                  name={p.photo_capture_status === "pending" ? "time-outline" : "checkmark-circle"}
+                  size={16}
+                  color={p.photo_capture_status === "pending" ? "#9C9A94" : "#C0632A"}
+                />
+                <Text style={s.pendingFood}>{p.food_name}</Text>
+                {p.calories && <Text style={s.pendingCal}>~{p.calories} cal</Text>}
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* ── Stoic Card ── */}
@@ -502,11 +605,11 @@ const s = StyleSheet.create({
     borderColor: "#5C5A54",
     marginBottom: 4,
   },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 6,
     backgroundColor: "#1C1C1A",
     borderWidth: 0.5,
     borderColor: "#5C5A54",
@@ -571,4 +674,9 @@ const s = StyleSheet.create({
     padding: 24,
     maxHeight: "85%",
   },
+  pendingSection: { marginTop: 14, paddingTop: 12, borderTopWidth: 0.5, borderTopColor: "#3D3C38" },
+  pendingLabel: { fontSize: 12, fontWeight: "600", color: "#9C9A94", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
+  pendingRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
+  pendingFood: { fontSize: 14, color: "#F0EDE6", flex: 1 },
+  pendingCal: { fontSize: 13, color: "#9C9A94" },
 });

@@ -35,7 +35,8 @@
     "@gorhom/bottom-sheet": "^5.1.0",
     "expo-secure-store": "~15.0.4",
     "expo-image-picker": "~17.0.9",
-    "expo-notifications": "~55.0.16"
+    "expo-notifications": "~55.0.16",
+    "base64-arraybuffer": "^1.0.2"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
