@@ -154,6 +154,7 @@ Items not yet locked. Discuss in future design sessions.
 | 1.3 | 2026-04-05 | FS-2 build complete. Daily log CRUD, workout CRUD with calorie burn model, Stoic passage selection + AI frame generation, 3 services. |
 | 1.4 | 2026-04-05 | FS-3 build complete. Food log CRUD, photo capture with Claude Vision, chef affirm/adjust, USDA search proxy, chef recipe CRUD, chef meal logging for members. |
 | 1.5 | 2026-04-05 | FS-4 build complete. Chef dashboard (member summaries, pending affirms, directives + acknowledge), auto-DM conversation created on chef assignment. |
+| 1.6 | 2026-04-05 | FS-5 build complete. On-demand AI query (10/day rate limit), anomaly detection job (6 threshold conditions), weekly digest job, full member context builder, Expo push notification service. |
 
 ---
 
