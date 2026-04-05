@@ -152,6 +152,7 @@ Items not yet locked. Discuss in future design sessions.
 | 1.1 | 2026-04-05 | FS-0 build complete. All 20 tables, RLS, 14 indexes, 3 storage buckets deployed to Supabase. |
 | 1.2 | 2026-04-05 | FS-1 build complete. Auth trigger, 29 RLS policies, custom claims edge function, FastAPI skeleton with auth + profile + admin endpoints. |
 | 1.3 | 2026-04-05 | FS-2 build complete. Daily log CRUD, workout CRUD with calorie burn model, Stoic passage selection + AI frame generation, 3 services. |
+| 1.4 | 2026-04-05 | FS-3 build complete. Food log CRUD, photo capture with Claude Vision, chef affirm/adjust, USDA search proxy, chef recipe CRUD, chef meal logging for members. |
 
 ---
 
