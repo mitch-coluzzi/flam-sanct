@@ -4,6 +4,16 @@ import json
 from datetime import date, timedelta
 from api.services.claude import client as claude_client, log_ai_request
 
+MOOD_LABELS = {
+    -4: "Crisis", -3: "Struggling", -2: "Low", -1: "Flat",
+    0: "Neutral", 1: "Steady", 2: "Solid", 3: "Strong", 4: "Peak",
+}
+
+def _mood_label(val: int | None) -> str:
+    if val is None:
+        return "Unknown"
+    return MOOD_LABELS.get(val, MOOD_LABELS.get(max(-4, min(4, val)), "Unknown"))
+
 
 async def build_member_context(sb, user_id: str, days: int = 14) -> dict:
     """Build the standardized context package for AI calls."""
@@ -64,7 +74,8 @@ async def build_member_context(sb, user_id: str, days: int = 14) -> dict:
     l_data = logs_result.data or []
     sleep_vals = [l["sleep_hours"] for l in l_data if l.get("sleep_hours")]
     quality_vals = [l["sleep_quality"] for l in l_data if l.get("sleep_quality")]
-    mood_vals = [l["mood"] for l in l_data if l.get("mood")]
+    mood_vals = [l["mood"] for l in l_data if l.get("mood") is not None]
+    latest_mood = l_data[-1]["mood"] if l_data and l_data[-1].get("mood") is not None else None
 
     # Benchmark PRs
     prs = sb.table("benchmark_results").select("*, benchmark:benchmarks(name)").eq("user_id", user_id).eq("is_pr", True).gte("log_date", start_str).execute()
@@ -94,6 +105,9 @@ async def build_member_context(sb, user_id: str, days: int = 14) -> dict:
             "avg_sleep_hours": round(sum(sleep_vals) / len(sleep_vals), 1) if sleep_vals else 0,
             "avg_sleep_quality": round(sum(quality_vals) / len(quality_vals), 1) if quality_vals else 0,
             "avg_mood": round(sum(mood_vals) / len(mood_vals), 1) if mood_vals else 0,
+            "avg_mood_label": _mood_label(round(sum(mood_vals) / len(mood_vals))) if mood_vals else "Unknown",
+            "latest_mood": latest_mood,
+            "latest_mood_label": _mood_label(latest_mood) if latest_mood is not None else None,
         },
         "weight_trend": {
             "start": start_weight,

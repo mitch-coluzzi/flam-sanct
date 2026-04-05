@@ -20,12 +20,24 @@ def detect_anomalies(context: dict) -> list[dict]:
             "data": {"avg_sleep": recovery["avg_sleep_hours"]},
         })
 
-    # Mood declining: avg <= 2 for 3+ consecutive days
-    if recovery.get("avg_mood", 5) <= 2:
+    # Mood crisis: -4 on any single day = immediate alert
+    latest_mood = recovery.get("latest_mood")
+    if latest_mood is not None and latest_mood <= -4:
+        anomalies.append({
+            "type": "mood_crisis",
+            "short_message": "You logged Crisis today. If you're in a tough spot, talking to someone helps.",
+            "data": {"mood": latest_mood, "label": "Crisis"},
+            "crisis": True,
+        })
+
+    # Mood declining: avg <= -2 for 3+ consecutive days
+    avg_mood = recovery.get("avg_mood", 0)
+    mood_label = recovery.get("avg_mood_label", "")
+    if avg_mood <= -2:
         anomalies.append({
             "type": "mood_alert",
-            "short_message": f"Your mood has averaged {recovery['avg_mood']}/5 recently.",
-            "data": {"avg_mood": recovery["avg_mood"]},
+            "short_message": f"You've been logging {mood_label or 'Low'} or below for several days.",
+            "data": {"avg_mood": avg_mood, "label": mood_label},
         })
 
     # High RPE streak: 5+ sessions RPE >= 8 with no rest day

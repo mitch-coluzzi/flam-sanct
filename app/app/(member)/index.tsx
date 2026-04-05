@@ -56,7 +56,7 @@ export default function TodayScreen() {
   const [sleepHours, setSleepHours] = useState("");
   const [sleepQuality, setSleepQuality] = useState(0);
   const [weight, setWeight] = useState("");
-  const [mood, setMood] = useState(0);
+  const [mood, setMood] = useState<number | null>(null);
   const [moodNote, setMoodNote] = useState("");
 
   // Workout modal
@@ -141,7 +141,7 @@ export default function TodayScreen() {
     if (sleepHours) updates.sleep_hours = parseFloat(sleepHours);
     if (sleepQuality) updates.sleep_quality = sleepQuality;
     if (weight) updates.weight_lbs = parseFloat(weight);
-    if (mood) updates.mood = mood;
+    if (mood !== null) updates.mood = mood;
     if (moodNote) updates.mood_note = moodNote;
 
     await supabase.from("daily_logs").update(updates).eq("id", log.id);
@@ -198,7 +198,19 @@ export default function TodayScreen() {
     );
   }
 
-  const MOODS = ["", "Rough", "Low", "Okay", "Good", "Great"];
+  const MOOD_SCALE: { value: number; label: string; color: string }[] = [
+    { value: -4, label: "Crisis", color: "#6B4C5A" },
+    { value: -3, label: "Struggling", color: "#7A5C5C" },
+    { value: -2, label: "Low", color: "#8A6E5E" },
+    { value: -1, label: "Flat", color: "#7A7A72" },
+    { value: 0, label: "Neutral", color: "#5C5A54" },
+    { value: 1, label: "Steady", color: "#7A6A4A" },
+    { value: 2, label: "Solid", color: "#9A7A3A" },
+    { value: 3, label: "Strong", color: "#B07030" },
+    { value: 4, label: "Peak", color: "#C0632A" },
+  ];
+  const moodLabel = (v: number | null) => MOOD_SCALE.find((m) => m.value === v)?.label || "";
+  const moodColor = (v: number | null) => MOOD_SCALE.find((m) => m.value === v)?.color || "#5C5A54";
   const SLEEP_Q = ["", "Terrible", "Poor", "Fair", "Good", "Excellent"];
 
   return (
@@ -251,19 +263,35 @@ export default function TodayScreen() {
           />
 
           <Text style={s.label}>Mood</Text>
-          <View style={s.chipRow}>
-            {[1, 2, 3, 4, 5].map((v) => (
-              <TouchableOpacity
-                key={v}
-                style={[s.chip, mood === v && s.chipActive]}
-                onPress={() => setMood(v)}
-              >
-                <Text style={[s.chipText, mood === v && s.chipTextActive]}>
-                  {MOODS[v]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {mood !== null && (
+            <Text style={[s.moodDisplay, { color: moodColor(mood) }]}>
+              {moodLabel(mood)}
+            </Text>
+          )}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={s.chipRow}>
+              {MOOD_SCALE.map((m) => (
+                <TouchableOpacity
+                  key={m.value}
+                  style={[s.chip, mood === m.value && { backgroundColor: m.color, borderColor: m.color }]}
+                  onPress={() => setMood(m.value)}
+                >
+                  <Text style={[s.chipText, mood === m.value && s.chipTextActive]}>
+                    {m.value > 0 ? `+${m.value}` : m.value}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+
+          {mood !== null && mood <= -4 && (
+            <View style={s.crisisCard}>
+              <Text style={s.crisisText}>
+                If you're in a tough spot, talking to someone helps. You don't have to carry it alone.
+              </Text>
+              <Text style={s.crisisLink}>988 Suicide & Crisis Lifeline: call or text 988</Text>
+            </View>
+          )}
 
           <TextInput
             style={[s.input, { marginTop: 8 }]}
@@ -288,8 +316,16 @@ export default function TodayScreen() {
               Sleep: {log.sleep_hours}h · Quality: {SLEEP_Q[log.sleep_quality || 0]}
             </Text>
           )}
-          {log?.mood && (
-            <Text style={s.statLine}>Mood: {MOODS[log.mood]}{log.mood_note ? ` — ${log.mood_note}` : ""}</Text>
+          {log?.mood !== null && log?.mood !== undefined && (
+            <Text style={s.statLine}>Mood: {moodLabel(log.mood)}{log.mood_note ? ` — ${log.mood_note}` : ""}</Text>
+          )}
+          {log?.mood !== null && log?.mood !== undefined && log.mood <= -4 && (
+            <View style={s.crisisCard}>
+              <Text style={s.crisisText}>
+                If you're in a tough spot, talking to someone helps. You don't have to carry it alone.
+              </Text>
+              <Text style={s.crisisLink}>988 Suicide & Crisis Lifeline: call or text 988</Text>
+            </View>
           )}
           {log?.weight_lbs && (
             <Text style={s.statLine}>Weight: {log.weight_lbs} lbs</Text>
@@ -510,6 +546,17 @@ const s = StyleSheet.create({
   workoutRow: { marginBottom: 10, paddingBottom: 10, borderBottomWidth: 0.5, borderBottomColor: "#3D3C38" },
   workoutType: { fontSize: 15, fontWeight: "600", color: "#F0EDE6" },
   workoutMeta: { fontSize: 13, color: "#9C9A94", marginTop: 2 },
+  moodDisplay: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
+  crisisCard: {
+    backgroundColor: "#3D2A2A",
+    borderRadius: 10,
+    padding: 14,
+    marginTop: 12,
+    borderWidth: 0.5,
+    borderColor: "#6B4C5A",
+  },
+  crisisText: { fontSize: 14, color: "#F0EDE6", lineHeight: 20 },
+  crisisLink: { fontSize: 13, color: "#C0632A", fontWeight: "600", marginTop: 8 },
   passage: { fontSize: 16, color: "#F0EDE6", fontStyle: "italic", lineHeight: 24 },
   attribution: { fontSize: 13, color: "#9C9A94", marginTop: 8 },
   modalOverlay: {

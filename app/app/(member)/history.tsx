@@ -20,7 +20,11 @@ interface DayData {
   food_count: number;
 }
 
-const MOODS = ["", "Rough", "Low", "Okay", "Good", "Great"];
+const MOOD_LABELS: Record<number, string> = {
+  [-4]: "Crisis", [-3]: "Struggling", [-2]: "Low", [-1]: "Flat",
+  [0]: "Neutral", [1]: "Steady", [2]: "Solid", [3]: "Strong", [4]: "Peak",
+};
+const moodLabel = (v: number | null) => v !== null ? MOOD_LABELS[v] || "" : "";
 
 export default function HistoryScreen() {
   const profile = useAuthStore((s) => s.profile);
@@ -110,7 +114,7 @@ export default function HistoryScreen() {
           </View>
           <View style={s.dayStats}>
             {day.sleep_hours && <Text style={s.stat}>{day.sleep_hours}h sleep</Text>}
-            {day.mood && <Text style={s.stat}>{MOODS[day.mood]}</Text>}
+            {day.mood !== null && day.mood !== undefined && <Text style={s.stat}>{moodLabel(day.mood)}</Text>}
             {day.weight_lbs && <Text style={s.stat}>{day.weight_lbs} lbs</Text>}
             {day.workout_count > 0 && <Text style={s.stat}>{day.workout_count} workout{day.workout_count > 1 ? "s" : ""}</Text>}
           </View>
