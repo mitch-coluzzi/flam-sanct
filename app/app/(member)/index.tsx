@@ -332,21 +332,19 @@ export default function TodayScreen() {
               {moodLabel(mood)}
             </Text>
           )}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={s.chipRow}>
-              {MOOD_SCALE.map((m) => (
-                <TouchableOpacity
-                  key={m.value}
-                  style={[s.chip, mood === m.value && { backgroundColor: m.color, borderColor: m.color }]}
-                  onPress={() => setMood(m.value)}
-                >
-                  <Text style={[s.chipText, mood === m.value && s.chipTextActive]}>
-                    {m.value > 0 ? `+${m.value}` : m.value}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
+          <View style={s.moodRow}>
+            {MOOD_SCALE.map((m) => (
+              <TouchableOpacity
+                key={m.value}
+                style={[s.moodChip, mood === m.value && { backgroundColor: m.color, borderColor: m.color }]}
+                onPress={() => setMood(m.value)}
+              >
+                <Text style={[s.moodChipText, mood === m.value && s.chipTextActive]}>
+                  {m.value > 0 ? `+${m.value}` : m.value}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
           {mood !== null && mood <= -4 && (
             <View style={s.crisisCard}>
@@ -664,6 +662,17 @@ const s = StyleSheet.create({
   sqChipActive: { backgroundColor: "#C0632A", borderColor: "#C0632A" },
   sqText: { color: "#9C9A94", fontSize: 12, fontWeight: "600" },
   sqTextActive: { color: "#1C1C1A" },
+  moodRow: { flexDirection: "row", gap: 3 },
+  moodChip: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 6,
+    backgroundColor: "#1C1C1A",
+    borderWidth: 0.5,
+    borderColor: "#5C5A54",
+    alignItems: "center",
+  },
+  moodChipText: { color: "#9C9A94", fontSize: 13, fontWeight: "700" },
   moodDisplay: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
   crisisCard: {
     backgroundColor: "#3D2A2A",
