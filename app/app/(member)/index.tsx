@@ -71,9 +71,10 @@ export default function TodayScreen() {
   const [abstainHit, setAbstainHit] = useState<boolean | null>(null);
   const [growthHit, setGrowthHit] = useState<boolean | null>(null);
 
-  // Evening fields
+  // Reflection + Evening
+  const [amReflection, setAmReflection] = useState("");
+  const [pmReflection, setPmReflection] = useState("");
   const [eveningMood, setEveningMood] = useState<number | null>(null);
-  const [reflection, setReflection] = useState("");
   const [passage, setPassage] = useState<any>(null);
   const [grades, setGrades] = useState<Record<string, number | null>>({
     body: null, emotion: null, financial: null, relational: null, spiritual: null,
@@ -116,8 +117,9 @@ export default function TodayScreen() {
     if (logData) {
       setLog(logData);
       setMorningDone(!!(logData.sleep_hours || logData.mood !== null));
-      setEveningDone(!!(logData.stoic_reflection || logData.evening_mood !== null));
-      setReflection(logData.stoic_reflection || "");
+      setEveningDone(!!(logData.pm_reflection || logData.evening_mood !== null));
+      setAmReflection(logData.am_reflection || "");
+      setPmReflection(logData.pm_reflection || "");
 
       // Stoic passage — assigned or fallback
       let p = null;
@@ -180,6 +182,7 @@ export default function TodayScreen() {
     if (moodNote) u.mood_note = moodNote;
     if (abstainHit !== null) u.abstain_hit = abstainHit;
     if (growthHit !== null) u.growth_hit = growthHit;
+    if (amReflection.trim()) u.am_reflection = amReflection.trim();
     if (weight) {
       u.weight_lbs = parseFloat(weight);
       await supabase.from("users").update({ last_weigh_date: TODAY }).eq("id", userId);
@@ -192,7 +195,7 @@ export default function TodayScreen() {
     if (!userId || !log) return;
     const u: Record<string, any> = { updated_at: new Date().toISOString() };
     if (eveningMood !== null) u.evening_mood = eveningMood;
-    if (reflection.trim()) u.stoic_reflection = reflection.trim();
+    if (pmReflection.trim()) u.pm_reflection = pmReflection.trim();
     if (grades.body !== null) u.grade_body = grades.body;
     if (grades.emotion !== null) u.grade_emotion = grades.emotion;
     if (grades.spiritual !== null) u.grade_spiritual = grades.spiritual;
@@ -405,6 +408,15 @@ export default function TodayScreen() {
             </View>
           )}
 
+          {/* Stoic passage + AM reflection */}
+          {passage && (
+            <View style={st.stoicSection}>
+              <Text style={st.passage}>"{passage.passage}"</Text>
+              <Text style={st.attribution}>— {passage.author}{passage.source ? `, ${passage.source}` : ""}</Text>
+            </View>
+          )}
+          <TextInput style={[st.input, { marginTop: 12, minHeight: 60, textAlignVertical: "top" }]} placeholder="Morning reflection (optional)" placeholderTextColor="#5C5A54" value={amReflection} onChangeText={setAmReflection} multiline />
+
           <TouchableOpacity style={st.cta} onPress={submitMorning}><Text style={st.ctaText}>Log Check-In</Text></TouchableOpacity>
         </View>
       )}
@@ -415,13 +427,21 @@ export default function TodayScreen() {
           <Text style={st.cardTitle}>Evening Check-In</Text>
 
           {passage && (
-            <>
+            <View style={st.stoicSection}>
               <Text style={st.passage}>"{passage.passage}"</Text>
               <Text style={st.attribution}>— {passage.author}{passage.source ? `, ${passage.source}` : ""}</Text>
-            </>
+            </View>
           )}
 
-          <TextInput style={[st.input, { marginTop: 16, minHeight: 80, textAlignVertical: "top" }]} placeholder="What does this mean for you today?" placeholderTextColor="#5C5A54" value={reflection} onChangeText={setReflection} multiline />
+          {/* Locked AM reflection */}
+          {log?.am_reflection && (
+            <View style={st.lockedReflection}>
+              <Text style={st.lockedLabel}>AM REFLECTION</Text>
+              <Text style={st.lockedText}>"{log.am_reflection}"</Text>
+            </View>
+          )}
+
+          <TextInput style={[st.input, { marginTop: 12, minHeight: 80, textAlignVertical: "top" }]} placeholder="Evening reflection..." placeholderTextColor="#5C5A54" value={pmReflection} onChangeText={setPmReflection} multiline />
 
           <Text style={st.label}>Evening mood</Text>
           {eveningMood !== null && <Text style={[st.moodDisplay, { color: moodColor(eveningMood) }]}>{moodLabel(eveningMood)}</Text>}
@@ -464,7 +484,8 @@ export default function TodayScreen() {
           {log?.weight_lbs && <Text style={st.statLine}>Weight: {log.weight_lbs} lbs</Text>}
           {log?.abstain_hit !== null && <Text style={st.statLine}>🚫 {profile?.abstain_label || "Abstain"}: {log.abstain_hit ? "✓" : "✗"}</Text>}
           {log?.growth_hit !== null && <Text style={st.statLine}>🌱 {profile?.growth_label || "Growth"}: {log.growth_hit ? "✓" : "✗"}</Text>}
-          {log?.stoic_reflection && <Text style={st.reflectionPreview}>"{log.stoic_reflection.substring(0, 80)}{log.stoic_reflection.length > 80 ? "..." : ""}"</Text>}
+          {log?.am_reflection && <Text style={st.reflectionPreview}>AM: "{log.am_reflection.substring(0, 60)}{log.am_reflection.length > 60 ? "..." : ""}"</Text>}
+          {log?.pm_reflection && <Text style={st.reflectionPreview}>PM: "{log.pm_reflection.substring(0, 60)}{log.pm_reflection.length > 60 ? "..." : ""}"</Text>}
         </View>
       )}
 
@@ -607,6 +628,10 @@ const st = StyleSheet.create({
   tBtnText: { fontSize: 13, fontWeight: "600", color: "#9C9A94" },
   tYes: { backgroundColor: "#C0632A", borderColor: "#C0632A" },
   tNo: { backgroundColor: "#6B4C5A", borderColor: "#6B4C5A" },
+  stoicSection: { marginTop: 12, paddingTop: 12, borderTopWidth: 0.5, borderTopColor: "#3D3C38" },
+  lockedReflection: { backgroundColor: "#1C1C1A", borderRadius: 8, padding: 12, marginTop: 12, borderWidth: 0.5, borderColor: "#3D3C38" },
+  lockedLabel: { fontSize: 10, fontWeight: "700", color: "#5C5A54", letterSpacing: 1.5, marginBottom: 6 },
+  lockedText: { fontSize: 14, color: "#9C9A94", fontStyle: "italic", lineHeight: 20 },
   gradeRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
   gradeLabel: { fontSize: 14, fontWeight: "600", color: "#F0EDE6", width: 70 },
   gradeBtns: { flexDirection: "row", gap: 4, flex: 1, justifyContent: "flex-end" },
