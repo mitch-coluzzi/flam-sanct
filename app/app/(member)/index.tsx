@@ -111,6 +111,15 @@ export default function TodayScreen() {
   const [photoNarrative, setPhotoNarrative] = useState("");
   const [pendingPhotoData, setPendingPhotoData] = useState<{ mealType: string; photoUrl: string } | null>(null);
 
+  // Edit pending photo
+  const [editingPending, setEditingPending] = useState<any>(null);
+  const [epName, setEpName] = useState("");
+  const [epCal, setEpCal] = useState("");
+  const [epProtein, setEpProtein] = useState("");
+  const [epCarbs, setEpCarbs] = useState("");
+  const [epFat, setEpFat] = useState("");
+  const [epNarrative, setEpNarrative] = useState("");
+
   // Photo
   const [photoCapturing, setPhotoCapturing] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<any[]>([]);
@@ -293,6 +302,42 @@ export default function TodayScreen() {
     Alert.alert("Logged.");
   };
 
+  const openEditPending = (p: any) => {
+    setEditingPending(p);
+    setEpName(p.food_name || "");
+    setEpCal(p.calories?.toString() || "");
+    setEpProtein(p.protein_g?.toString() || "");
+    setEpCarbs(p.carbs_g?.toString() || "");
+    setEpFat(p.fat_g?.toString() || "");
+    setEpNarrative(p.narrative || "");
+  };
+
+  const saveEditPending = async () => {
+    if (!editingPending) return;
+    await supabase.from("food_logs").update({
+      food_name: epName.trim() || editingPending.food_name,
+      calories: epCal ? parseInt(epCal) : null,
+      protein_g: epProtein ? parseFloat(epProtein) : null,
+      carbs_g: epCarbs ? parseFloat(epCarbs) : null,
+      fat_g: epFat ? parseFloat(epFat) : null,
+      narrative: epNarrative.trim() || null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", editingPending.id);
+    setEditingPending(null);
+    loadToday();
+  };
+
+  const deletePending = (id: string) => {
+    Alert.alert("Delete entry?", "This will remove the food log.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: async () => {
+        await supabase.from("food_logs").delete().eq("id", id);
+        setEditingPending(null);
+        loadToday();
+      }},
+    ]);
+  };
+
   const submitManualFood = async () => {
     if (!userId || !mfName.trim()) return;
     await supabase.from("food_logs").insert({
@@ -405,7 +450,7 @@ export default function TodayScreen() {
         {pendingPhotos.length > 0 && (
           <View style={st.pending}><Text style={st.pendingLabel}>{pendingPhotos.filter((p) => p.photo_capture_status === "pending").length} awaiting review</Text>
             {pendingPhotos.map((p: any) => (
-              <View key={p.id} style={st.pendingItem}>
+              <TouchableOpacity key={p.id} style={st.pendingItem} onPress={() => openEditPending(p)}>
                 <View style={st.pendingRow}>
                   <Ionicons name={p.photo_capture_status === "pending" ? "time-outline" : "checkmark-circle"} size={16} color={p.photo_capture_status === "pending" ? "#9C9A94" : "#C0632A"} />
                   <Text style={st.pendingFood}>{p.food_name}</Text>
@@ -417,9 +462,12 @@ export default function TodayScreen() {
                   </Text>
                 )}
                 {p.photo_capture_status === "pending" && p.calories && (
-                  <Text style={st.aiPending}>AI estimate · awaiting chef review</Text>
+                  <Text style={st.aiPending}>AI estimate · tap to edit · awaiting chef review</Text>
                 )}
-              </View>
+                {p.photo_capture_status === "pending" && !p.calories && (
+                  <Text style={st.aiPending}>Tap to add details</Text>
+                )}
+              </TouchableOpacity>
             ))}
           </View>
         )}
@@ -690,6 +738,43 @@ export default function TodayScreen() {
             <TouchableOpacity style={[st.chip, { flex: 1, alignItems: "center", paddingVertical: 14 }]} onPress={() => submitPhotoWithNarrative(true)}><Text style={st.chipText}>Skip</Text></TouchableOpacity>
           </View>
         </View></View>
+      </Modal>
+
+      {/* ── EDIT PENDING MODAL ── */}
+      <Modal visible={!!editingPending} animationType="slide" transparent>
+        <View style={st.modalOverlay}><ScrollView contentContainerStyle={{ justifyContent: "flex-end", flexGrow: 1 }}><View style={st.modal}>
+          <View style={st.cardRow}><Text style={st.cardTitle}>Edit Details</Text><TouchableOpacity onPress={() => setEditingPending(null)}><Ionicons name="close" size={24} color="#9C9A94" /></TouchableOpacity></View>
+          <Text style={st.muted}>Refine the AI estimate before chef review.</Text>
+
+          <Text style={st.label}>Food name</Text>
+          <TextInput style={st.input} value={epName} onChangeText={setEpName} placeholderTextColor="#5C5A54" />
+
+          <Text style={st.label}>Calories</Text>
+          <TextInput style={st.input} value={epCal} onChangeText={setEpCal} keyboardType="numeric" placeholderTextColor="#5C5A54" />
+
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={st.label}>Protein</Text>
+              <TextInput style={st.input} value={epProtein} onChangeText={setEpProtein} keyboardType="numeric" placeholderTextColor="#5C5A54" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={st.label}>Carbs</Text>
+              <TextInput style={st.input} value={epCarbs} onChangeText={setEpCarbs} keyboardType="numeric" placeholderTextColor="#5C5A54" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={st.label}>Fat</Text>
+              <TextInput style={st.input} value={epFat} onChangeText={setEpFat} keyboardType="numeric" placeholderTextColor="#5C5A54" />
+            </View>
+          </View>
+
+          <Text style={st.label}>Notes</Text>
+          <TextInput style={[st.input, { minHeight: 60, textAlignVertical: "top" }]} value={epNarrative} onChangeText={setEpNarrative} multiline placeholderTextColor="#5C5A54" />
+
+          <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
+            <TouchableOpacity style={[st.cta, { flex: 1 }]} onPress={saveEditPending}><Text style={st.ctaText}>Save</Text></TouchableOpacity>
+            <TouchableOpacity style={[st.chip, { flex: 1, alignItems: "center", paddingVertical: 14, borderColor: "#6B4C5A" }]} onPress={() => deletePending(editingPending.id)}><Text style={[st.chipText, { color: "#6B4C5A" }]}>Delete</Text></TouchableOpacity>
+          </View>
+        </View></ScrollView></View>
       </Modal>
     </ScrollView>
   );
