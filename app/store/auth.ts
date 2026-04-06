@@ -17,6 +17,7 @@ interface UserProfile {
   last_weigh_date: string | null;
   abstain_label: string | null;
   growth_label: string | null;
+  last_body_photo_date: string | null;
 }
 
 interface AuthState {
