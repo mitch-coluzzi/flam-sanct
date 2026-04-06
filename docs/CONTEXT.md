@@ -206,15 +206,16 @@ Updated at the end of each Claude Code session.
 | FS-7 | 2026-04-05 | 0.9.0 | Community feed (posts, Flam reactions, replies), DM conversations (create, list, send, mark read). 51 business endpoints. |
 | Expo | 2026-04-05 | 0.95.0 | Expo app scaffolded. Auth screens (login/signup), 5-step onboarding, member tabs (6), chef tabs (3), admin stack. Brand palette applied. |
 | Screens | 2026-04-05 | 0.96.0 | All member screens built: Today (check-in, workout log, nutrition, Stoic), History (day list + detail), Progress (weight, benchmarks, streak), Community (feed + Flam + compose), Messages (DM list + chat), Ask (AI query stub). Railway config added. |
+| Full app | 2026-04-05 | 1.0.0 | AI wired to live API, chef screens (dashboard/affirm/recipes/member detail), admin panel (users/roles/assignments/Stoic curation), 30 Stoic passages seeded. All screens functional. |
 
 ---
 
 ## 8. Current Build State
 
-**Platform Version:** 0.96.0
-**Last Claude Code Session:** Member screens (2026-04-05)
-**Current Step:** All member screens functional against Supabase. Railway config ready.
-**Next Action:** Deploy FastAPI to Railway. Wire app to live API. Build chef screens.
+**Platform Version:** 1.0.0
+**Last Claude Code Session:** Full app build (2026-04-05)
+**Current Step:** MVP feature-complete. All screens built. API live on Railway. 30 Stoic passages seeded.
+**Next Action:** Brand assets from designer. End-to-end testing. EAS build for device install.
 
 ---
 
@@ -247,6 +248,7 @@ Increment on each Claude Code session that produces shippable code.
 | 0.9.0 | 2026-04-05 | FS-7 complete. Community feed, Flam reactions, replies, DM conversations, messages. All 8 specs built. 51 business endpoints. |
 | 0.95.0 | 2026-04-05 | Expo scaffold. Auth (login/signup), 5-step onboarding, member/chef/admin routing, brand palette applied. |
 | 0.96.0 | 2026-04-05 | All member screens built. Today, History, Progress, Community, Messages, Ask FlamSanct. Railway config. |
+| 1.0.0 | 2026-04-05 | MVP complete. AI wired to live API. Chef + admin screens. 30 Stoic passages. FastAPI on Railway. |
 
 **Versioning convention:**
 `0.X.0` — major spec or architecture additions during pre-launch

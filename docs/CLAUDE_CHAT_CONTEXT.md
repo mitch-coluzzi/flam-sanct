@@ -159,6 +159,7 @@ Items not yet locked. Discuss in future design sessions.
 | 1.8 | 2026-04-05 | FS-7 build complete. Community feed (posts/reactions/replies), DM conversations (create/list/send/read). ALL 8 SPECS BUILT. 51 business endpoints. Backend API complete. |
 | 1.9 | 2026-04-05 | Expo app scaffolded. Auth screens (login/signup), 5-step onboarding, member tabs (6), chef tabs (3), admin stack. Supabase client + Zustand + React Query + auth hook. Brand palette from FLAMSANCT_BRAND_BRIEF.md applied to all screens. |
 | 2.0 | 2026-04-05 | All member screens built with live Supabase: Today (check-in, workout modal, nutrition summary, Stoic reflection), History (day list w/ detail expand), Progress (weight delta, benchmarks w/ PR detection, streak), Community (feed, Flam toggle, compose), Messages (conversation list, DM chat), Ask FlamSanct (AI query stub). Railway deployment config added. |
+| 2.1 | 2026-04-05 | MVP 1.0.0. AI query wired to live Railway API. Chef screens: dashboard (members/photos/directives tabs), recipe manager (CRUD + tags + macros), member detail view. Admin panel: user management + role assignment + chef pairing + auto-DM + Stoic passage curation. 30 Stoic passages seeded (Marcus Aurelius, Epictetus, Seneca). FastAPI live at api.flamsanct.com. |
 
 ---
 

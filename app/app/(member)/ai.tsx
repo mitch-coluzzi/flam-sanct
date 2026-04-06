@@ -59,18 +59,28 @@ export default function AiScreen() {
     setAsking(true);
     setAnswer("");
 
-    // This will hit the FastAPI endpoint once deployed
-    // For now, show a placeholder since Claude API calls need the backend
-    setAnswer("The AI feedback layer requires the FastAPI backend to be deployed on Railway. Once live, this screen will connect to POST /v1/ai/query with your full 14-day context.");
-
-    // Log the attempt
-    if (userId) {
-      await supabase.from("ai_feedback_requests").insert({
-        user_id: userId,
-        request_type: "on_demand",
-        response_text: "[Pending — backend not deployed]",
-        tokens_used: 0,
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch("https://api.flamsanct.com/v1/ai/query", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ question: question.trim() }),
       });
+      const json = await res.json();
+      if (json.data?.answer) {
+        setAnswer(json.data.answer);
+        setRemaining(json.data.queries_remaining ?? remaining - 1);
+      } else if (json.error) {
+        setAnswer(json.error.message || json.error.detail || "Something went wrong.");
+      } else {
+        setAnswer("No response from FlamSanct.");
+      }
+    } catch {
+      setAnswer("Couldn't reach the server. Try again.");
     }
 
     setAsking(false);
