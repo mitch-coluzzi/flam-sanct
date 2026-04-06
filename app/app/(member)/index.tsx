@@ -520,7 +520,7 @@ export default function TodayScreen() {
           <Text style={st.label}>Anything notable today?</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
             <View style={st.chipRow}>
-              {["Date night", "Social event", "Travel", "Sick day", "Rest day", "Family", "Work event"].map((e) => (
+              {["Woohoo", "Date night", "Social event", "Travel", "Sick day", "Rest day", "Family", "Work event"].map((e) => (
                 <TouchableOpacity key={e} style={[st.chip, lifeEvent === e && st.chipOn]} onPress={() => setLifeEvent(lifeEvent === e ? "" : e)}>
                   <Text style={[st.chipText, lifeEvent === e && st.onText]}>{e}</Text>
                 </TouchableOpacity>
