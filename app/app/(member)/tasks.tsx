@@ -28,6 +28,8 @@ export default function TasksScreen() {
 
   // Inline add
   const [newTitle, setNewTitle] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+  const [addExpanded, setAddExpanded] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
   // Inline edit
@@ -63,9 +65,13 @@ export default function TasksScreen() {
     await supabase.from("tasks").insert({
       user_id: userId,
       title: newTitle.trim(),
+      description: newDesc.trim() || null,
       sort_order: minOrder,
     });
     setNewTitle("");
+    setNewDesc("");
+    setAddExpanded(false);
+    Keyboard.dismiss();
     loadTasks();
   };
 
@@ -193,20 +199,43 @@ export default function TasksScreen() {
   return (
     <View style={st.container}>
       {/* Inline add */}
-      <View style={st.addRow}>
-        <TouchableOpacity onPress={() => newTitle.trim() ? addTask() : inputRef.current?.focus()}>
-          <Ionicons name="add-circle" size={28} color="#C0632A" />
-        </TouchableOpacity>
-        <TextInput
-          ref={inputRef}
-          style={st.addInput}
-          placeholder="Add a task..."
-          placeholderTextColor="#5C5A54"
-          value={newTitle}
-          onChangeText={setNewTitle}
-          onSubmitEditing={addTask}
-          returnKeyType="done"
-        />
+      <View style={st.addCard}>
+        <View style={st.addRow}>
+          <TouchableOpacity onPress={() => newTitle.trim() ? addTask() : inputRef.current?.focus()}>
+            <Ionicons name="add-circle" size={28} color="#C0632A" />
+          </TouchableOpacity>
+          <TextInput
+            ref={inputRef}
+            style={st.addInput}
+            placeholder="Add a task"
+            placeholderTextColor="#5C5A54"
+            value={newTitle}
+            onChangeText={(t) => { setNewTitle(t); if (t.length === 1 && !addExpanded) setAddExpanded(true); }}
+            onSubmitEditing={() => { if (!newDesc && !addExpanded) addTask(); }}
+            onFocus={() => setAddExpanded(true)}
+            returnKeyType={addExpanded ? "next" : "done"}
+          />
+        </View>
+        {addExpanded && (
+          <>
+            <TextInput
+              style={st.addDescInput}
+              placeholder="Add details"
+              placeholderTextColor="#5C5A54"
+              value={newDesc}
+              onChangeText={setNewDesc}
+              multiline
+            />
+            <View style={st.addActions}>
+              <TouchableOpacity style={st.addSaveBtn} onPress={addTask}>
+                <Text style={st.addSaveBtnText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setAddExpanded(false); setNewTitle(""); setNewDesc(""); Keyboard.dismiss(); }}>
+                <Text style={st.addCancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
 
       <FlatList
@@ -244,8 +273,14 @@ export default function TasksScreen() {
 
 const st = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#1C1C1A", padding: 16 },
-  addRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16, backgroundColor: "#2E2D2A", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 0.5, borderColor: "#5C5A54" },
+  addCard: { backgroundColor: "#2E2D2A", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 0.5, borderColor: "#5C5A54", marginBottom: 16 },
+  addRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   addInput: { flex: 1, color: "#F0EDE6", fontSize: 16, paddingVertical: 6 },
+  addDescInput: { color: "#F0EDE6", fontSize: 14, paddingVertical: 6, paddingLeft: 38, minHeight: 36, textAlignVertical: "top" },
+  addActions: { flexDirection: "row", gap: 12, alignItems: "center", paddingLeft: 38, paddingTop: 4, paddingBottom: 4 },
+  addSaveBtn: { backgroundColor: "#C0632A", borderRadius: 6, paddingHorizontal: 16, paddingVertical: 8 },
+  addSaveBtnText: { color: "#1C1C1A", fontWeight: "700", fontSize: 14 },
+  addCancelText: { color: "#9C9A94", fontSize: 14 },
   taskCard: { backgroundColor: "#2E2D2A", borderRadius: 10, marginBottom: 6, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 0.5, borderColor: "#3D3C38" },
   taskRow: { flexDirection: "row", alignItems: "flex-start" },
   checkbox: { marginRight: 10, marginTop: 1 },
