@@ -9,17 +9,20 @@ function TodayHeader() {
   const name = profile?.display_name || profile?.full_name || "PAX";
   return (
     <View style={h.row}>
-      <Text style={h.date}>{today}</Text>
-      <Text style={h.phase}>THE GRIND</Text>
-      <Text style={h.name}>{name}</Text>
+      <View style={h.col}><Text style={h.date}>{today}</Text></View>
+      <View style={h.colCenter}><Text style={h.phase}>THE GRIND</Text></View>
+      <View style={h.colRight}><Text style={h.name}>{name}</Text></View>
     </View>
   );
 }
 const h = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", flex: 1 },
+  col: { flex: 1 },
+  colCenter: { flex: 1, alignItems: "center" },
+  colRight: { flex: 1, alignItems: "flex-end" },
   date: { fontSize: 15, fontWeight: "600", color: "#F0EDE6" },
-  phase: { fontSize: 11, fontWeight: "700", color: "#C0632A", letterSpacing: 2, position: "absolute", left: 0, right: 0, textAlign: "center" },
-  name: { fontSize: 14, fontWeight: "700", color: "#9C9A94", marginLeft: "auto" },
+  phase: { fontSize: 11, fontWeight: "700", color: "#C0632A", letterSpacing: 2 },
+  name: { fontSize: 14, fontWeight: "700", color: "#9C9A94" },
 });
 
 export default function MemberLayout() {
