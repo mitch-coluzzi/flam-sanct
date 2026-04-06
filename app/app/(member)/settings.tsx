@@ -126,6 +126,19 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {(profile?.role === "chef" || profile?.role === "admin") && (
+        <TouchableOpacity style={st.switchBtn} onPress={() => router.replace("/(chef)/")}>
+          <Ionicons name="restaurant-outline" size={20} color="#C0632A" />
+          <Text style={st.switchText}>Switch to Chef View</Text>
+        </TouchableOpacity>
+      )}
+      {profile?.role === "admin" && (
+        <TouchableOpacity style={st.switchBtn} onPress={() => router.replace("/(admin)/")}>
+          <Ionicons name="shield-outline" size={20} color="#C0632A" />
+          <Text style={st.switchText}>Switch to Admin View</Text>
+        </TouchableOpacity>
+      )}
+
       <TouchableOpacity style={st.signOutBtn} onPress={handleSignOut}>
         <Ionicons name="log-out-outline" size={20} color="#9C9A94" />
         <Text style={st.signOutText}>Sign Out</Text>
@@ -153,6 +166,8 @@ const st = StyleSheet.create({
   infoRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 8 },
   infoLabel: { fontSize: 14, color: "#9C9A94" },
   infoValue: { fontSize: 14, color: "#F0EDE6", fontWeight: "600" },
+  switchBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, marginTop: 12, backgroundColor: "#2E2D2A", borderRadius: 8, borderWidth: 0.5, borderColor: "#C0632A" },
+  switchText: { fontSize: 15, color: "#C0632A", fontWeight: "700" },
   signOutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 16, marginTop: 16 },
   signOutText: { fontSize: 15, color: "#9C9A94", fontWeight: "600" },
 });

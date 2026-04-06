@@ -171,7 +171,7 @@ export default function TodayScreen() {
     setCaloriesIn((fData || []).reduce((s: number, f: any) => s + (f.calories || 0), 0));
 
     // Pending photos
-    const { data: pData } = await supabase.from("food_logs").select("id, food_name, calories, photo_capture_status").eq("user_id", userId).eq("log_date", TODAY).eq("source", "photo_capture").order("created_at", { ascending: false });
+    const { data: pData } = await supabase.from("food_logs").select("id, food_name, calories, protein_g, carbs_g, fat_g, photo_capture_status, ai_portion_estimate").eq("user_id", userId).eq("log_date", TODAY).eq("source", "photo_capture").order("created_at", { ascending: false });
     setPendingPhotos(pData || []);
 
     setLoading(false);
@@ -307,14 +307,27 @@ export default function TodayScreen() {
 
   const submitPhotoWithNarrative = async (skip?: boolean) => {
     if (!userId || !pendingPhotoData) return;
-    await supabase.from("food_logs").insert({
+    const { data: inserted } = await supabase.from("food_logs").insert({
       user_id: userId, log_date: TODAY, meal_type: pendingPhotoData.mealType, source: "photo_capture",
       food_name: (!skip && photoNarrative.trim()) ? photoNarrative.trim() : "Photo capture — pending review",
       photo_url: pendingPhotoData.photoUrl, photo_capture_status: "pending",
       narrative: (!skip && photoNarrative.trim()) ? photoNarrative.trim() : null,
-    });
+    }).select().single();
     setShowPhotoNarrative(false); setPhotoNarrative(""); setPendingPhotoData(null);
     loadToday();
+
+    // Trigger Claude Vision estimation in the background
+    if (inserted?.id) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        await fetch(`https://api.flamsanct.com/v1/food-logs/${inserted.id}/estimate`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+        });
+        loadToday();
+      } catch {}
+    }
   };
 
   const syncF3 = async () => {
@@ -391,7 +404,23 @@ export default function TodayScreen() {
         </View>
         {pendingPhotos.length > 0 && (
           <View style={st.pending}><Text style={st.pendingLabel}>{pendingPhotos.filter((p) => p.photo_capture_status === "pending").length} awaiting review</Text>
-            {pendingPhotos.map((p: any) => <View key={p.id} style={st.pendingRow}><Ionicons name={p.photo_capture_status === "pending" ? "time-outline" : "checkmark-circle"} size={16} color={p.photo_capture_status === "pending" ? "#9C9A94" : "#C0632A"} /><Text style={st.pendingFood}>{p.food_name}</Text></View>)}
+            {pendingPhotos.map((p: any) => (
+              <View key={p.id} style={st.pendingItem}>
+                <View style={st.pendingRow}>
+                  <Ionicons name={p.photo_capture_status === "pending" ? "time-outline" : "checkmark-circle"} size={16} color={p.photo_capture_status === "pending" ? "#9C9A94" : "#C0632A"} />
+                  <Text style={st.pendingFood}>{p.food_name}</Text>
+                  {p.calories ? <Text style={st.pendingCal}>~{p.calories} cal</Text> : null}
+                </View>
+                {p.calories && (p.protein_g || p.carbs_g || p.fat_g) && (
+                  <Text style={st.pendingMacros}>
+                    {p.protein_g ? `P ${p.protein_g}g · ` : ""}{p.carbs_g ? `C ${p.carbs_g}g · ` : ""}{p.fat_g ? `F ${p.fat_g}g` : ""}
+                  </Text>
+                )}
+                {p.photo_capture_status === "pending" && p.calories && (
+                  <Text style={st.aiPending}>AI estimate · awaiting chef review</Text>
+                )}
+              </View>
+            ))}
           </View>
         )}
       </View>
@@ -736,8 +765,12 @@ const st = StyleSheet.create({
   attribution: { fontSize: 13, color: "#9C9A94", marginTop: 8 },
   pending: { marginTop: 14, paddingTop: 12, borderTopWidth: 0.5, borderTopColor: "#3D3C38" },
   pendingLabel: { fontSize: 12, fontWeight: "600", color: "#9C9A94", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
-  pendingRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
+  pendingItem: { marginBottom: 10, paddingBottom: 8, borderBottomWidth: 0.5, borderBottomColor: "#3D3C38" },
+  pendingRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
   pendingFood: { fontSize: 14, color: "#F0EDE6", flex: 1 },
+  pendingCal: { fontSize: 13, color: "#C0632A", fontWeight: "600" },
+  pendingMacros: { fontSize: 12, color: "#9C9A94", marginLeft: 24, marginTop: 2 },
+  aiPending: { fontSize: 11, color: "#5C5A54", fontStyle: "italic", marginLeft: 24, marginTop: 2 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
   modal: { backgroundColor: "#2E2D2A", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, maxHeight: "90%" },
 });

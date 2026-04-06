@@ -249,6 +249,95 @@ Be conservative on calories if uncertain. Note if the image is unclear.""",
     return {"data": result.data[0] if result.data else None, "error": None, "meta": {"timestamp": now}}
 
 
+@router.post("/food-logs/{food_log_id}/estimate")
+async def estimate_existing_photo(
+    food_log_id: str,
+    request: Request,
+    user: dict = Depends(member_or_admin),
+):
+    """Run Claude Vision on an already-uploaded photo and store the estimate."""
+    sb = request.app.state.supabase
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Verify ownership and get photo URL
+    existing = sb.table("food_logs").select("*").eq("id", food_log_id).eq("user_id", user["user_id"]).limit(1).execute()
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Food log not found")
+    food_log = existing.data[0]
+    photo_url = food_log.get("photo_url")
+    if not photo_url:
+        raise HTTPException(status_code=400, detail="No photo URL on this food log")
+
+    # Download the image
+    import httpx
+    async with httpx.AsyncClient() as client:
+        img_resp = await client.get(photo_url, timeout=15)
+        img_bytes = img_resp.content
+
+    b64_data = base64.b64encode(img_bytes).decode("utf-8")
+    media_type = "image/jpeg"
+
+    # Build prompt with member narrative if provided
+    narrative = food_log.get("narrative")
+    narrative_hint = f"\n\nMember's description: {narrative}" if narrative else ""
+
+    vision_response = claude_client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=500,
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64_data}},
+                {
+                    "type": "text",
+                    "text": f"""Analyze this food photo and provide a portion estimate.{narrative_hint}
+Respond in this exact JSON format:
+{{
+  "food_name": "descriptive name",
+  "estimated_quantity": numeric,
+  "unit": "oz/g/cup/serving/piece",
+  "calories_estimate": integer,
+  "protein_g": numeric,
+  "carbs_g": numeric,
+  "fat_g": numeric,
+  "confidence": "low/medium/high",
+  "notes": "observations"
+}}
+Be conservative on calories if uncertain."""
+                },
+            ],
+        }],
+    )
+    ai_raw = vision_response.content[0].text
+
+    try:
+        estimate = json.loads(ai_raw)
+    except json.JSONDecodeError:
+        # Try to extract JSON from markdown code blocks
+        import re
+        match = re.search(r'\{.*\}', ai_raw, re.DOTALL)
+        estimate = json.loads(match.group()) if match else {"food_name": food_log.get("food_name") or "Unknown"}
+
+    # Update food log with estimate (keeps status pending for chef review)
+    updates = {
+        "food_name": estimate.get("food_name") or food_log.get("food_name"),
+        "quantity": estimate.get("estimated_quantity"),
+        "unit": estimate.get("unit"),
+        "calories": estimate.get("calories_estimate"),
+        "protein_g": estimate.get("protein_g"),
+        "carbs_g": estimate.get("carbs_g"),
+        "fat_g": estimate.get("fat_g"),
+        "ai_portion_estimate": ai_raw,
+        "updated_at": now,
+    }
+    sb.table("food_logs").update(updates).eq("id", food_log_id).execute()
+
+    tokens = vision_response.usage.input_tokens + vision_response.usage.output_tokens
+    await log_ai_request(sb, user["user_id"], "on_demand", ai_raw, tokens)
+
+    return {"data": {"estimate": estimate, "raw": ai_raw}, "error": None, "meta": {"timestamp": now}}
+
+
 @router.post("/food-logs/{food_log_id}/affirm")
 async def affirm_photo_capture(
     food_log_id: str,
