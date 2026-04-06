@@ -1,7 +1,9 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../store/auth";
+
+const SCREEN_W = Dimensions.get("window").width;
 
 function TodayHeader() {
   const profile = useAuthStore((s) => s.profile);
@@ -9,17 +11,14 @@ function TodayHeader() {
   const name = profile?.display_name || profile?.full_name || "PAX";
   return (
     <View style={h.row}>
-      <View style={h.col}><Text style={h.date}>{today}</Text></View>
-      <View style={h.colCenter}><Text style={h.phase}>THE GRIND</Text></View>
-      <View style={h.colRight}><Text style={h.name}>{name}</Text></View>
+      <Text style={h.date}>{today}</Text>
+      <Text style={h.phase}>THE GRIND</Text>
+      <Text style={h.name}>{name}</Text>
     </View>
   );
 }
 const h = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", flex: 1 },
-  col: { flex: 1 },
-  colCenter: { flex: 1, alignItems: "center" },
-  colRight: { flex: 1, alignItems: "flex-end" },
+  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: SCREEN_W - 32 },
   date: { fontSize: 15, fontWeight: "600", color: "#F0EDE6" },
   phase: { fontSize: 11, fontWeight: "700", color: "#C0632A", letterSpacing: 2 },
   name: { fontSize: 14, fontWeight: "700", color: "#9C9A94" },
