@@ -14,6 +14,9 @@ interface UserProfile {
   push_token: string | null;
   onboarded_at: string | null;
   f3_name: string | null;
+  last_weigh_date: string | null;
+  abstain_label: string | null;
+  growth_label: string | null;
 }
 
 interface AuthState {
