@@ -337,6 +337,33 @@ export default function TodayScreen() {
       <Text style={st.phase}>THE GRIND</Text>
       <Text style={st.greeting}>{profile?.display_name || profile?.full_name || "PAX"}</Text>
 
+      {/* ── NUTRITION (always visible at top) ── */}
+      <View style={st.card}>
+        <View style={st.cardRow}>
+          <Text style={st.cardTitle}>Nutrition</Text>
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <TouchableOpacity onPress={() => setShowFoodResponse(true)}><Ionicons name="body-outline" size={20} color="#C0632A" /></TouchableOpacity>
+            <TouchableOpacity onPress={() => Alert.alert("Snap Food Photo", "Which meal?", [
+              { text: "Breakfast", onPress: () => captureFood("breakfast") }, { text: "Lunch", onPress: () => captureFood("lunch") },
+              { text: "Dinner", onPress: () => captureFood("dinner") }, { text: "Snack", onPress: () => captureFood("snack") },
+              { text: "Cancel", style: "cancel" },
+            ])} disabled={photoCapturing}>
+              {photoCapturing ? <ActivityIndicator size="small" color="#C0632A" /> : <Ionicons name="camera" size={22} color="#C0632A" />}
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={st.statsRow}>
+          <View style={st.stat}><Text style={st.statNum}>{caloriesIn}</Text><Text style={st.statLabel}>IN</Text></View>
+          <View style={st.stat}><Text style={st.statNum}>{caloriesOut}</Text><Text style={st.statLabel}>OUT</Text></View>
+          <View style={st.stat}><Text style={[st.statNum, { color: "#C0632A" }]}>{caloriesIn - caloriesOut}</Text><Text style={st.statLabel}>NET</Text></View>
+        </View>
+        {pendingPhotos.length > 0 && (
+          <View style={st.pending}><Text style={st.pendingLabel}>{pendingPhotos.filter((p) => p.photo_capture_status === "pending").length} awaiting review</Text>
+            {pendingPhotos.map((p: any) => <View key={p.id} style={st.pendingRow}><Ionicons name={p.photo_capture_status === "pending" ? "time-outline" : "checkmark-circle"} size={16} color={p.photo_capture_status === "pending" ? "#9C9A94" : "#C0632A"} /><Text style={st.pendingFood}>{p.food_name}</Text></View>)}
+          </View>
+        )}
+      </View>
+
       {/* ── MORNING CHECK-IN (or catch-up) ── */}
       {showMorningCheckin && (
         <View style={st.card}>
@@ -498,6 +525,15 @@ export default function TodayScreen() {
         </View>
       )}
 
+      {/* ── STOIC (standalone if morning done and not in evening card) ── */}
+      {morningDone && eveningDone && passage && (
+        <View style={st.card}>
+          <Text style={st.cardTitle}>Today's Passage</Text>
+          <Text style={st.passage}>"{passage.passage}"</Text>
+          <Text style={st.attribution}>— {passage.author}{passage.source ? `, ${passage.source}` : ""}</Text>
+        </View>
+      )}
+
       {/* ── WORKOUTS ── */}
       <View style={st.card}>
         <View style={st.cardRow}>
@@ -514,42 +550,6 @@ export default function TodayScreen() {
           </View>
         ))}
       </View>
-
-      {/* ── NUTRITION ── */}
-      <View style={st.card}>
-        <View style={st.cardRow}>
-          <Text style={st.cardTitle}>Nutrition</Text>
-          <View style={{ flexDirection: "row", gap: 12 }}>
-            <TouchableOpacity onPress={() => setShowFoodResponse(true)}><Ionicons name="body-outline" size={20} color="#C0632A" /></TouchableOpacity>
-            <TouchableOpacity onPress={() => Alert.alert("Snap Food Photo", "Which meal?", [
-              { text: "Breakfast", onPress: () => captureFood("breakfast") }, { text: "Lunch", onPress: () => captureFood("lunch") },
-              { text: "Dinner", onPress: () => captureFood("dinner") }, { text: "Snack", onPress: () => captureFood("snack") },
-              { text: "Cancel", style: "cancel" },
-            ])} disabled={photoCapturing}>
-              {photoCapturing ? <ActivityIndicator size="small" color="#C0632A" /> : <Ionicons name="camera" size={22} color="#C0632A" />}
-            </TouchableOpacity>
-          </View>
-        </View>
-        <View style={st.statsRow}>
-          <View style={st.stat}><Text style={st.statNum}>{caloriesIn}</Text><Text style={st.statLabel}>IN</Text></View>
-          <View style={st.stat}><Text style={st.statNum}>{caloriesOut}</Text><Text style={st.statLabel}>OUT</Text></View>
-          <View style={st.stat}><Text style={[st.statNum, { color: "#C0632A" }]}>{caloriesIn - caloriesOut}</Text><Text style={st.statLabel}>NET</Text></View>
-        </View>
-        {pendingPhotos.length > 0 && (
-          <View style={st.pending}><Text style={st.pendingLabel}>{pendingPhotos.filter((p) => p.photo_capture_status === "pending").length} awaiting review</Text>
-            {pendingPhotos.map((p: any) => <View key={p.id} style={st.pendingRow}><Ionicons name={p.photo_capture_status === "pending" ? "time-outline" : "checkmark-circle"} size={16} color={p.photo_capture_status === "pending" ? "#9C9A94" : "#C0632A"} /><Text style={st.pendingFood}>{p.food_name}</Text></View>)}
-          </View>
-        )}
-      </View>
-
-      {/* ── STOIC (standalone if morning done and not in evening card) ── */}
-      {morningDone && eveningDone && passage && (
-        <View style={st.card}>
-          <Text style={st.cardTitle}>Today's Passage</Text>
-          <Text style={st.passage}>"{passage.passage}"</Text>
-          <Text style={st.attribution}>— {passage.author}{passage.source ? `, ${passage.source}` : ""}</Text>
-        </View>
-      )}
 
       {/* ── WORKOUT MODAL ── */}
       <Modal visible={showWorkout} animationType="slide" transparent>
