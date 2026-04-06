@@ -111,6 +111,10 @@ export default function TodayScreen() {
   const [photoNarrative, setPhotoNarrative] = useState("");
   const [pendingPhotoData, setPendingPhotoData] = useState<{ mealType: string; photoUrl: string } | null>(null);
 
+  // Journal note (post-completion)
+  const [showJournal, setShowJournal] = useState(false);
+  const [journalText, setJournalText] = useState("");
+
   // Edit pending photo
   const [editingPending, setEditingPending] = useState<any>(null);
   const [epName, setEpName] = useState("");
@@ -142,6 +146,7 @@ export default function TodayScreen() {
       setEveningDone(!!(logData.pm_reflection || logData.evening_mood !== null));
       setAmReflection(logData.am_reflection || "");
       setPmReflection(logData.pm_reflection || "");
+      setJournalText(logData.journal_note || "");
 
       // Stoic passage — assigned or fallback
       let p = null;
@@ -300,6 +305,16 @@ export default function TodayScreen() {
     });
     setShowFoodResponse(false); setFrGut(""); setFrEnergy(""); setFrNote("");
     Alert.alert("Logged.");
+  };
+
+  const saveJournal = async () => {
+    if (!log) return;
+    await supabase.from("daily_logs").update({
+      journal_note: journalText.trim() || null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", log.id);
+    setShowJournal(false);
+    loadToday();
   };
 
   const openEditPending = (p: any) => {
@@ -573,23 +588,35 @@ export default function TodayScreen() {
             <View style={st.crisisCard}><Text style={st.crisisText}>If you're in a tough spot, talking to someone helps. You don't have to carry it alone.</Text><Text style={st.crisisLink}>988 Suicide & Crisis Lifeline: call or text 988</Text></View>
           )}
 
-          {/* Abstain + Growth */}
-          {profile?.abstain_label && (
-            <View style={st.trackerRow}>
-              <Text style={st.trackerLabel}>🚫 {profile.abstain_label}</Text>
-              <View style={st.trackerBtns}>
-                <TouchableOpacity style={[st.tBtn, abstainHit === true && st.tYes]} onPress={() => setAbstainHit(true)}><Text style={[st.tBtnText, abstainHit === true && st.onText]}>Yes</Text></TouchableOpacity>
-                <TouchableOpacity style={[st.tBtn, abstainHit === false && st.tNo]} onPress={() => setAbstainHit(false)}><Text style={[st.tBtnText, abstainHit === false && st.onText]}>No</Text></TouchableOpacity>
-              </View>
-            </View>
-          )}
-          {profile?.growth_label && (
-            <View style={st.trackerRow}>
-              <Text style={st.trackerLabel}>🌱 {profile.growth_label}</Text>
-              <View style={st.trackerBtns}>
-                <TouchableOpacity style={[st.tBtn, growthHit === true && st.tYes]} onPress={() => setGrowthHit(true)}><Text style={[st.tBtnText, growthHit === true && st.onText]}>Yes</Text></TouchableOpacity>
-                <TouchableOpacity style={[st.tBtn, growthHit === false && st.tNo]} onPress={() => setGrowthHit(false)}><Text style={[st.tBtnText, growthHit === false && st.onText]}>No</Text></TouchableOpacity>
-              </View>
+          {/* Abstain + Growth — single row with + / - */}
+          {(profile?.abstain_label || profile?.growth_label) && (
+            <View style={st.customRow}>
+              {profile?.abstain_label && (
+                <View style={st.customCol}>
+                  <Text style={st.customLabel}>🚫 {profile.abstain_label}</Text>
+                  <View style={st.pmRow}>
+                    <TouchableOpacity style={[st.pmBtn, abstainHit === true && st.pmYes]} onPress={() => setAbstainHit(true)}>
+                      <Ionicons name="add" size={20} color={abstainHit === true ? "#1C1C1A" : "#9C9A94"} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[st.pmBtn, abstainHit === false && st.pmNo]} onPress={() => setAbstainHit(false)}>
+                      <Ionicons name="remove" size={20} color={abstainHit === false ? "#1C1C1A" : "#9C9A94"} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              {profile?.growth_label && (
+                <View style={st.customCol}>
+                  <Text style={st.customLabel}>🌱 {profile.growth_label}</Text>
+                  <View style={st.pmRow}>
+                    <TouchableOpacity style={[st.pmBtn, growthHit === true && st.pmYes]} onPress={() => setGrowthHit(true)}>
+                      <Ionicons name="add" size={20} color={growthHit === true ? "#1C1C1A" : "#9C9A94"} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[st.pmBtn, growthHit === false && st.pmNo]} onPress={() => setGrowthHit(false)}>
+                      <Ionicons name="remove" size={20} color={growthHit === false ? "#1C1C1A" : "#9C9A94"} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
             </View>
           )}
 
@@ -631,13 +658,48 @@ export default function TodayScreen() {
         <View style={st.card}>
           <View style={st.cardRow}><Ionicons name="checkmark-circle" size={20} color="#C0632A" /><Text style={st.cardDone}>Day complete</Text></View>
           {log?.sleep_hours && <Text style={st.statLine}>Sleep: {log.sleep_hours}h · {SLEEP_Q[log.sleep_quality ?? 0] || "Average"}</Text>}
-          {log?.mood !== null && <Text style={st.statLine}>AM Mood: {moodLabel(log.mood)}{log.mood_note ? ` — ${log.mood_note}` : ""}</Text>}
-          {log?.evening_mood !== null && <Text style={st.statLine}>PM Mood: {moodLabel(log.evening_mood)}</Text>}
+          {log?.mood !== null && log?.mood !== undefined && <Text style={st.statLine}>AM Mood: {moodLabel(log.mood)}{log.mood_note ? ` — ${log.mood_note}` : ""}</Text>}
+          {log?.evening_mood !== null && log?.evening_mood !== undefined && <Text style={st.statLine}>PM Mood: {moodLabel(log.evening_mood)}</Text>}
           {log?.weight_lbs && <Text style={st.statLine}>Weight: {log.weight_lbs} lbs</Text>}
-          {log?.abstain_hit !== null && <Text style={st.statLine}>🚫 {profile?.abstain_label || "Abstain"}: {log.abstain_hit ? "✓" : "✗"}</Text>}
-          {log?.growth_hit !== null && <Text style={st.statLine}>🌱 {profile?.growth_label || "Growth"}: {log.growth_hit ? "✓" : "✗"}</Text>}
-          {log?.am_reflection && <Text style={st.reflectionPreview}>AM: "{log.am_reflection.substring(0, 60)}{log.am_reflection.length > 60 ? "..." : ""}"</Text>}
-          {log?.pm_reflection && <Text style={st.reflectionPreview}>PM: "{log.pm_reflection.substring(0, 60)}{log.pm_reflection.length > 60 ? "..." : ""}"</Text>}
+          {log?.abstain_hit !== null && log?.abstain_hit !== undefined && <Text style={st.statLine}>🚫 {profile?.abstain_label || "Abstain"}: {log.abstain_hit ? "✓" : "✗"}</Text>}
+          {log?.growth_hit !== null && log?.growth_hit !== undefined && <Text style={st.statLine}>🌱 {profile?.growth_label || "Growth"}: {log.growth_hit ? "✓" : "✗"}</Text>}
+          {log?.life_event && <Text style={st.statLine}>📌 {log.life_event}{log.life_event_note ? ` — ${log.life_event_note}` : ""}</Text>}
+
+          {/* Life grades */}
+          {(log?.grade_body !== null || log?.grade_emotion !== null || log?.grade_spiritual !== null || log?.grade_relational !== null || log?.grade_financial !== null) && (
+            <View style={st.gradesSummary}>
+              {log?.grade_body !== null && log?.grade_body !== undefined && <Text style={st.gradeLine}>Body: {log.grade_body > 0 ? `+${log.grade_body}` : log.grade_body}</Text>}
+              {log?.grade_emotion !== null && log?.grade_emotion !== undefined && <Text style={st.gradeLine}>Mind: {log.grade_emotion > 0 ? `+${log.grade_emotion}` : log.grade_emotion}</Text>}
+              {log?.grade_spiritual !== null && log?.grade_spiritual !== undefined && <Text style={st.gradeLine}>Spirit: {log.grade_spiritual > 0 ? `+${log.grade_spiritual}` : log.grade_spiritual}</Text>}
+              {log?.grade_relational !== null && log?.grade_relational !== undefined && <Text style={st.gradeLine}>Relation: {log.grade_relational > 0 ? `+${log.grade_relational}` : log.grade_relational}</Text>}
+              {log?.grade_financial !== null && log?.grade_financial !== undefined && <Text style={st.gradeLine}>Finance: {log.grade_financial > 0 ? `+${log.grade_financial}` : log.grade_financial}</Text>}
+            </View>
+          )}
+
+          {/* Full reflections */}
+          {log?.am_reflection && (
+            <View style={st.fullReflection}>
+              <Text style={st.reflectionLabel}>AM REFLECTION</Text>
+              <Text style={st.reflectionFull}>"{log.am_reflection}"</Text>
+            </View>
+          )}
+          {log?.pm_reflection && (
+            <View style={st.fullReflection}>
+              <Text style={st.reflectionLabel}>PM REFLECTION</Text>
+              <Text style={st.reflectionFull}>"{log.pm_reflection}"</Text>
+            </View>
+          )}
+
+          {/* Journal note (free-form, addable after completion) */}
+          <View style={st.journalSection}>
+            <Text style={st.reflectionLabel}>JOURNAL</Text>
+            {log?.journal_note ? (
+              <Text style={st.journalText}>{log.journal_note}</Text>
+            ) : null}
+            <TouchableOpacity onPress={() => setShowJournal(true)}>
+              <Text style={st.journalAddBtn}>{log?.journal_note ? "Edit journal entry" : "+ Add journal entry"}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -740,6 +802,16 @@ export default function TodayScreen() {
         </View></View>
       </Modal>
 
+      {/* ── JOURNAL MODAL ── */}
+      <Modal visible={showJournal} animationType="slide" transparent>
+        <View style={st.modalOverlay}><ScrollView contentContainerStyle={{ justifyContent: "flex-end", flexGrow: 1 }}><View style={st.modal}>
+          <View style={st.cardRow}><Text style={st.cardTitle}>Journal Entry</Text><TouchableOpacity onPress={() => setShowJournal(false)}><Ionicons name="close" size={24} color="#9C9A94" /></TouchableOpacity></View>
+          <Text style={st.muted}>Long-form reflection. Write what didn't fit elsewhere.</Text>
+          <TextInput style={[st.input, { marginTop: 12, minHeight: 200, textAlignVertical: "top" }]} placeholder="What's on your mind?" placeholderTextColor="#5C5A54" value={journalText} onChangeText={setJournalText} multiline autoFocus />
+          <TouchableOpacity style={st.cta} onPress={saveJournal}><Text style={st.ctaText}>Save</Text></TouchableOpacity>
+        </View></ScrollView></View>
+      </Modal>
+
       {/* ── EDIT PENDING MODAL ── */}
       <Modal visible={!!editingPending} animationType="slide" transparent>
         <View style={st.modalOverlay}><ScrollView contentContainerStyle={{ justifyContent: "flex-end", flexGrow: 1 }}><View style={st.modal}>
@@ -839,6 +911,21 @@ const st = StyleSheet.create({
   muted: { color: "#5C5A54", fontSize: 14, fontStyle: "italic" },
   statLine: { color: "#9C9A94", fontSize: 14, marginTop: 4 },
   reflectionPreview: { color: "#9C9A94", fontSize: 13, fontStyle: "italic", marginTop: 8 },
+  customRow: { flexDirection: "row", gap: 12, marginTop: 14, paddingTop: 12, borderTopWidth: 0.5, borderTopColor: "#3D3C38" },
+  customCol: { flex: 1 },
+  customLabel: { fontSize: 13, color: "#F0EDE6", marginBottom: 6 },
+  pmRow: { flexDirection: "row", gap: 6 },
+  pmBtn: { flex: 1, paddingVertical: 10, borderRadius: 6, backgroundColor: "#1C1C1A", borderWidth: 0.5, borderColor: "#5C5A54", alignItems: "center" },
+  pmYes: { backgroundColor: "#C0632A", borderColor: "#C0632A" },
+  pmNo: { backgroundColor: "#6B4C5A", borderColor: "#6B4C5A" },
+  gradesSummary: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 12, paddingTop: 12, borderTopWidth: 0.5, borderTopColor: "#3D3C38" },
+  gradeLine: { fontSize: 13, color: "#9C9A94" },
+  fullReflection: { marginTop: 14, paddingTop: 12, borderTopWidth: 0.5, borderTopColor: "#3D3C38" },
+  reflectionLabel: { fontSize: 10, fontWeight: "700", color: "#5C5A54", letterSpacing: 1.5, marginBottom: 6 },
+  reflectionFull: { fontSize: 14, color: "#F0EDE6", fontStyle: "italic", lineHeight: 22 },
+  journalSection: { marginTop: 14, paddingTop: 12, borderTopWidth: 0.5, borderTopColor: "#3D3C38" },
+  journalText: { fontSize: 14, color: "#F0EDE6", lineHeight: 22, marginBottom: 8 },
+  journalAddBtn: { fontSize: 13, color: "#C0632A", fontWeight: "600" },
   statsRow: { flexDirection: "row", justifyContent: "space-around" },
   stat: { alignItems: "center" },
   statNum: { fontSize: 22, fontWeight: "800", color: "#F0EDE6" },
