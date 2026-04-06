@@ -16,10 +16,10 @@ function TodayHeader() {
   );
 }
 const h = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
-  date: { fontSize: 13, color: "#9C9A94" },
-  phase: { fontSize: 11, fontWeight: "700", color: "#C0632A", letterSpacing: 2 },
-  name: { fontSize: 14, fontWeight: "700", color: "#F0EDE6", marginLeft: "auto" },
+  row: { flexDirection: "row", alignItems: "center", flex: 1 },
+  date: { fontSize: 15, fontWeight: "600", color: "#F0EDE6" },
+  phase: { fontSize: 11, fontWeight: "700", color: "#C0632A", letterSpacing: 2, position: "absolute", left: 0, right: 0, textAlign: "center" },
+  name: { fontSize: 14, fontWeight: "700", color: "#9C9A94", marginLeft: "auto" },
 });
 
 export default function MemberLayout() {
