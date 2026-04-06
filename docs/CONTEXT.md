@@ -207,15 +207,19 @@ Updated at the end of each Claude Code session.
 | Expo | 2026-04-05 | 0.95.0 | Expo app scaffolded. Auth screens (login/signup), 5-step onboarding, member tabs (6), chef tabs (3), admin stack. Brand palette applied. |
 | Screens | 2026-04-05 | 0.96.0 | All member screens built: Today (check-in, workout log, nutrition, Stoic), History (day list + detail), Progress (weight, benchmarks, streak), Community (feed + Flam + compose), Messages (DM list + chat), Ask (AI query stub). Railway config added. |
 | Full app | 2026-04-05 | 1.0.0 | AI wired to live API, chef screens (dashboard/affirm/recipes/member detail), admin panel (users/roles/assignments/Stoic curation), 30 Stoic passages seeded. All screens functional. |
+| Feedback 1 | 2026-04-05 | 1.0.1 | Mood scale -4 to +4, sleep quality -2 to +2 inline, weekly weight, F3 AO dropdown, RPE labels, Stoic fallback, abstain/growth trackers, food responses, body photo monthly, life grades (B/M/S/R/F), AM/PM reflections, photo opt-out. |
+| Tasks + Settings | 2026-04-06 | 1.0.5-1.0.7 | Tasks tab (Google-style), Tasks/Quotes toggle, Settings screen (profile, F3 name, abstain/growth labels, body photo toggle, view switcher, sign out), header redesign (date/THE GRIND/name). |
+| Chef + AI | 2026-04-06 | 1.0.8-1.0.9 | Chef view switching, AI nutrition estimates on pending photos via Vision endpoint, tappable awaiting-review entries with full edit modal. |
+| Day Complete | 2026-04-06 | 1.1.0 | Custom trackers single row +/- icons, life events, Day Complete shows full reflections, life grades, life event, post-completion journal entry. |
 
 ---
 
 ## 8. Current Build State
 
-**Platform Version:** 1.0.0
-**Last Claude Code Session:** Full app build (2026-04-05)
-**Current Step:** MVP feature-complete. All screens built. API live on Railway. 30 Stoic passages seeded.
-**Next Action:** Brand assets from designer. End-to-end testing. EAS build for device install.
+**Platform Version:** 1.1.0
+**Last Claude Code Session:** Day Complete + journal (2026-04-06)
+**Current Step:** Iterating on feedback. Smart AM/PM check-in, life grades, journal, AI photo estimation all live.
+**Next Action:** Brand assets from designer. EAS build (gesture-handler issue resolved with new arch). Cleanup for first cohort onboarding.
 
 ---
 
@@ -249,6 +253,12 @@ Increment on each Claude Code session that produces shippable code.
 | 0.95.0 | 2026-04-05 | Expo scaffold. Auth (login/signup), 5-step onboarding, member/chef/admin routing, brand palette applied. |
 | 0.96.0 | 2026-04-05 | All member screens built. Today, History, Progress, Community, Messages, Ask FlamSanct. Railway config. |
 | 1.0.0 | 2026-04-05 | MVP complete. AI wired to live API. Chef + admin screens. 30 Stoic passages. FastAPI on Railway. |
+| 1.0.1 | 2026-04-05 | Mood -4/+4, sleep -2/+2, weekly weight, F3 AOs, RPE labels, Stoic fallback, abstain/growth, food responses, body photo, life grades, AM/PM reflections. |
+| 1.0.5 | 2026-04-06 | Tasks tab (Google-style with Tasks/Quotes toggle), reorder, expand to add description. |
+| 1.0.7 | 2026-04-06 | Settings screen with profile/labels/photo toggle/view switcher. Header redesign. |
+| 1.0.8 | 2026-04-06 | Chef view switching. AI nutrition estimates on pending photos via /food-logs/{id}/estimate. |
+| 1.0.9 | 2026-04-06 | Awaiting review tappable to edit details (food name, calories, macros, narrative). |
+| 1.1.0 | 2026-04-06 | Day Complete shows full reflections + life grades + life event. Custom trackers single row +/-. Post-completion journal entry. |
 
 **Versioning convention:**
 `0.X.0` — major spec or architecture additions during pre-launch
