@@ -45,7 +45,7 @@ const DSM_AOS = [
 
 export default function TodayScreen() {
   const profile = useAuthStore((s) => s.profile) as any;
-  const todayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  // Header is now in _layout.tsx
   const userId = profile?.id;
 
   const [log, setLog] = useState<any>(null);
@@ -333,10 +333,6 @@ export default function TodayScreen() {
 
   return (
     <ScrollView style={st.container} contentContainerStyle={{ paddingBottom: 48 }}>
-      <Text style={st.date}>{todayLabel}</Text>
-      <Text style={st.phase}>THE GRIND</Text>
-      <Text style={st.greeting}>{profile?.display_name || profile?.full_name || "PAX"}</Text>
-
       {/* ── NUTRITION (always visible at top) ── */}
       <View style={st.card}>
         <View style={st.cardRow}>
