@@ -30,6 +30,14 @@ const RPE_LABELS: Record<number, string> = {
   1: "Rest", 2: "Easy", 3: "Light", 4: "Moderate", 5: "Challenging",
   6: "Hard", 7: "Very Hard", 8: "Intense", 9: "All Out", 10: "Max",
 };
+const LIFE_ASPECTS = [
+  { key: "body", label: "Body" },
+  { key: "emotion", label: "Mind" },
+  { key: "spiritual", label: "Spirit" },
+  { key: "relational", label: "Relation" },
+  { key: "financial", label: "Finance" },
+] as const;
+
 const DSM_AOS = [
   "House of Mayhem", "A New Hope", "Capitol Punishment", "Simon & Garfunkel",
   "Laurid Zeppelin", "Warriors Den", "The Proving Grounds", "MIT", "Pop-Up",
@@ -67,6 +75,9 @@ export default function TodayScreen() {
   const [eveningMood, setEveningMood] = useState<number | null>(null);
   const [reflection, setReflection] = useState("");
   const [passage, setPassage] = useState<any>(null);
+  const [grades, setGrades] = useState<Record<string, number | null>>({
+    body: null, emotion: null, financial: null, relational: null, spiritual: null,
+  });
 
   // Workout modal
   const [showWorkout, setShowWorkout] = useState(false);
@@ -132,8 +143,9 @@ export default function TodayScreen() {
     // Body photo cadence (30 days monthly, available on any weekly)
     const lastPhoto = profile?.last_body_photo_date;
     const daysSincePhoto = lastPhoto ? Math.floor((Date.now() - new Date(lastPhoto).getTime()) / 86400000) : 999;
-    setBodyPhotoDue(daysSinceWeigh >= 7); // available whenever weight is due
-    setBodyPhotoMonthly(daysSincePhoto >= 30); // firm reminder at 30 days
+    const photoEnabled = profile?.body_photo_enabled !== false;
+    setBodyPhotoDue(photoEnabled && daysSinceWeigh >= 7);
+    setBodyPhotoMonthly(photoEnabled && daysSincePhoto >= 30);
 
     // Workouts
     const { data: wData } = await supabase.from("workouts").select("*").eq("user_id", userId).eq("log_date", TODAY).order("created_at");
@@ -181,6 +193,11 @@ export default function TodayScreen() {
     const u: Record<string, any> = { updated_at: new Date().toISOString() };
     if (eveningMood !== null) u.evening_mood = eveningMood;
     if (reflection.trim()) u.stoic_reflection = reflection.trim();
+    if (grades.body !== null) u.grade_body = grades.body;
+    if (grades.emotion !== null) u.grade_emotion = grades.emotion;
+    if (grades.spiritual !== null) u.grade_spiritual = grades.spiritual;
+    if (grades.relational !== null) u.grade_relational = grades.relational;
+    if (grades.financial !== null) u.grade_financial = grades.financial;
     await supabase.from("daily_logs").update(u).eq("id", log.id);
     Alert.alert("Evening check-in saved.");
     loadToday();
@@ -419,6 +436,20 @@ export default function TodayScreen() {
             <View style={st.crisisCard}><Text style={st.crisisText}>If you're in a tough spot, talking to someone helps. You don't have to carry it alone.</Text><Text style={st.crisisLink}>988 Suicide & Crisis Lifeline: call or text 988</Text></View>
           )}
 
+          <Text style={st.label}>Life check — how are you today?</Text>
+          {LIFE_ASPECTS.map((aspect) => (
+            <View key={aspect.key} style={st.gradeRow}>
+              <Text style={st.gradeLabel}>{aspect.label}</Text>
+              <View style={st.gradeBtns}>
+                {([-2, -1, 0, 1, 2] as const).map((v) => (
+                  <TouchableOpacity key={v} style={[st.gradeBtn, grades[aspect.key] === v && st.sqActive]} onPress={() => setGrades({ ...grades, [aspect.key]: v })}>
+                    <Text style={[st.sqText, grades[aspect.key] === v && st.onText]}>{v > 0 ? `+${v}` : v}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          ))}
+
           <TouchableOpacity style={st.cta} onPress={submitEvening}><Text style={st.ctaText}>Save Evening Check-In</Text></TouchableOpacity>
         </View>
       )}
@@ -576,6 +607,10 @@ const st = StyleSheet.create({
   tBtnText: { fontSize: 13, fontWeight: "600", color: "#9C9A94" },
   tYes: { backgroundColor: "#C0632A", borderColor: "#C0632A" },
   tNo: { backgroundColor: "#6B4C5A", borderColor: "#6B4C5A" },
+  gradeRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  gradeLabel: { fontSize: 14, fontWeight: "600", color: "#F0EDE6", width: 70 },
+  gradeBtns: { flexDirection: "row", gap: 4, flex: 1, justifyContent: "flex-end" },
+  gradeBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 6, backgroundColor: "#1C1C1A", borderWidth: 0.5, borderColor: "#5C5A54" },
   miniSummary: { flexDirection: "row", gap: 16, marginBottom: 12, paddingHorizontal: 4 },
   miniText: { fontSize: 13, color: "#9C9A94" },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },

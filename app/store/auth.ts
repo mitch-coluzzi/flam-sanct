@@ -18,6 +18,7 @@ interface UserProfile {
   abstain_label: string | null;
   growth_label: string | null;
   last_body_photo_date: string | null;
+  body_photo_enabled: boolean;
 }
 
 interface AuthState {
