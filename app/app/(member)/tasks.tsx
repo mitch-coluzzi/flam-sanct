@@ -194,7 +194,7 @@ export default function TasksScreen() {
     <View style={st.container}>
       {/* Inline add */}
       <View style={st.addRow}>
-        <TouchableOpacity onPress={() => inputRef.current?.focus()}>
+        <TouchableOpacity onPress={() => newTitle.trim() ? addTask() : inputRef.current?.focus()}>
           <Ionicons name="add-circle" size={28} color="#C0632A" />
         </TouchableOpacity>
         <TextInput
