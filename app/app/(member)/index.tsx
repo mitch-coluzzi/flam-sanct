@@ -251,6 +251,104 @@ export default function TodayScreen() {
     Alert.alert("Saved.");
   };
 
+  const syncF3 = async () => {
+    if (!userId || !profile?.f3_name) return;
+    Alert.alert("Syncing F3...", "Pulling your attendance from F3 Nation.");
+
+    // Direct Supabase sync (bypasses FastAPI until deployed)
+    // Import the logic inline — matches by f3_name in backblast attendance
+    try {
+      const response = await fetch(
+        `https://api.f3nation.com/v1/event-instance?regionOrgId=36348&startDate=${
+          new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0]
+        }&endDate=${TODAY}&pageSize=50`,
+        {
+          headers: {
+            Authorization: "Bearer f3_da4d22544cb46c310a473020cd3bb9197d89ac62323f2453",
+            Client: "flamsanct",
+          },
+        },
+      );
+      const events = await response.json();
+      const eventList = Array.isArray(events) ? events : events?.eventInstances || events?.data || [];
+
+      // Get AO map
+      const locResp = await fetch(
+        "https://api.f3nation.com/v1/location?regionIds=36348&statuses=active&pageSize=50",
+        { headers: { Authorization: "Bearer f3_da4d22544cb46c310a473020cd3bb9197d89ac62323f2453", Client: "flamsanct" } },
+      );
+      const locData = await locResp.json();
+      const locs = Array.isArray(locData) ? locData : locData?.locations || locData?.data || [];
+      const aoMap: Record<string, string> = {};
+      locs.forEach((l: any) => { if (l.id) aoMap[String(l.id)] = l.locationName?.replace(/F3 Des Moines[- ]*/i, "").trim() || "Unknown"; });
+
+      let synced = 0;
+      const f3Lower = profile.f3_name.toLowerCase();
+
+      for (const e of eventList) {
+        const eventId = e.id;
+        const eventDate = e.startDate;
+        if (!eventId || !eventDate || eventDate > TODAY) continue;
+
+        // Get actual attendance
+        const attResp = await fetch(
+          `https://api.f3nation.com/v1/attendance/event-instance/${eventId}?isPlanned=false`,
+          { headers: { Authorization: "Bearer f3_da4d22544cb46c310a473020cd3bb9197d89ac62323f2453", Client: "flamsanct" } },
+        );
+        const attData = await attResp.json();
+        const records = Array.isArray(attData) ? attData : attData?.attendance || [];
+
+        const match = records.find((r: any) => {
+          const name = (r.user?.f3Name || r.user?.name || "").replace(/F3 Des Moines[- ]*/i, "").trim();
+          return name.toLowerCase() === f3Lower;
+        });
+
+        if (!match) continue;
+
+        const locId = String(e.locationId || e.orgId || "");
+        const aoName = aoMap[locId] || "F3 Workout";
+
+        // Check existing
+        const { data: ex } = await supabase.from("workouts").select("id").eq("user_id", userId).eq("log_date", eventDate).eq("f3_ao", aoName).limit(1);
+        if (ex && ex.length > 0) continue;
+
+        // Get weight for calorie calc
+        const lastWeight = log?.weight_lbs || 185;
+        const weightKg = lastWeight * 0.453592;
+        const estCal = Math.round(8.0 * weightKg * (45 / 60) * (0.7 + (7 / 10 * 0.6)));
+
+        // Find Q
+        const attTypes = match.attendanceTypes || [];
+        const isQ = attTypes.some((a: any) => a.type === "Q");
+        let qName = null;
+        if (!isQ) {
+          const qRec = records.find((r: any) => (r.attendanceTypes || []).some((a: any) => a.type === "Q"));
+          if (qRec) qName = (qRec.user?.f3Name || "").replace(/F3 Des Moines[- ]*/i, "").trim();
+        }
+
+        await supabase.from("workouts").insert({
+          user_id: userId, log_date: eventDate, workout_type: "f3",
+          workout_label: `F3 — ${aoName}`, duration_minutes: 45, rpe: 7,
+          estimated_calories_burned: estCal, is_f3: true, f3_ao: aoName,
+          f3_q: isQ ? profile.f3_name : qName, notes: "Auto-synced from F3 Nation",
+        });
+
+        // Ensure daily log exists
+        const { data: dl } = await supabase.from("daily_logs").select("id").eq("user_id", userId).eq("log_date", eventDate).limit(1);
+        if (!dl || dl.length === 0) {
+          await supabase.from("daily_logs").insert({ user_id: userId, log_date: eventDate });
+        }
+
+        synced++;
+      }
+
+      Alert.alert("F3 Sync", `${synced} workout${synced !== 1 ? "s" : ""} synced from F3 Nation.`);
+      loadToday();
+    } catch (err) {
+      Alert.alert("Sync failed", "Couldn't reach F3 Nation API.");
+    }
+  };
+
   const caloriesOut = workouts.reduce((s, w) => s + (w.estimated_calories_burned || 0), 0);
 
   if (loading) {
@@ -399,9 +497,16 @@ export default function TodayScreen() {
       <View style={s.card}>
         <View style={s.cardRow}>
           <Text style={s.cardTitle}>Workouts</Text>
-          <TouchableOpacity onPress={() => setShowWorkout(true)}>
-            <Ionicons name="add-circle" size={24} color="#C0632A" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            {profile?.f3_name && (
+              <TouchableOpacity onPress={syncF3}>
+                <Ionicons name="sync" size={22} color="#C0632A" />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={() => setShowWorkout(true)}>
+              <Ionicons name="add-circle" size={24} color="#C0632A" />
+            </TouchableOpacity>
+          </View>
         </View>
         {workouts.length === 0 ? (
           <Text style={s.muted}>No workouts logged today.</Text>

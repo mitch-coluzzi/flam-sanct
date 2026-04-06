@@ -21,6 +21,7 @@ export default function OnboardingScreen() {
 
   const [step, setStep] = useState<Step>("welcome");
   const [displayName, setDisplayName] = useState("");
+  const [f3Name, setF3Name] = useState("");
   const [weight, setWeight] = useState("");
   const [weightUnit, setWeightUnit] = useState<"lbs" | "kg">("lbs");
   const [timezone] = useState(
@@ -49,6 +50,7 @@ export default function OnboardingScreen() {
     if (user) {
       const updates: Record<string, any> = {
         display_name: displayName.trim() || null,
+        f3_name: f3Name.trim() || null,
         timezone,
         weight_unit: weightUnit,
         onboarded_at: new Date().toISOString(),
@@ -103,6 +105,15 @@ export default function OnboardingScreen() {
           placeholderTextColor="#9C9A94"
           value={displayName}
           onChangeText={setDisplayName}
+        />
+
+        <Text style={s.label}>F3 name (optional)</Text>
+        <TextInput
+          style={s.input}
+          placeholder="Your F3 Nation name — syncs your workouts"
+          placeholderTextColor="#9C9A94"
+          value={f3Name}
+          onChangeText={setF3Name}
         />
 
         <Text style={s.label}>Current weight</Text>

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from api.dependencies.auth import require_role
 from api.services.calorie_burn import estimate_calories
+from api.services.f3_sync import sync_member_workouts, get_dsm_ao_list
 
 router = APIRouter(tags=["workouts"])
 member_or_admin = require_role(["member", "admin"])
@@ -173,3 +174,33 @@ async def delete_workout(
 
     result = sb.table("workouts").update({"deleted_at": now}).eq("id", workout_id).execute()
     return {"data": result.data[0] if result.data else None, "error": None, "meta": {"timestamp": now}}
+
+
+@router.post("/workouts/f3-sync")
+async def f3_sync(
+    request: Request,
+    days: int = 7,
+    user: dict = Depends(member_or_admin),
+):
+    """Sync F3 Nation attendance into workouts for the authenticated member."""
+    sb = request.app.state.supabase
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Get member's F3 name
+    profile = sb.table("users").select("f3_name").eq("id", user["user_id"]).single().execute()
+    f3_name = (profile.data or {}).get("f3_name")
+    if not f3_name:
+        raise HTTPException(status_code=400, detail="Set your F3 name in profile settings first.")
+
+    result = await sync_member_workouts(sb, user["user_id"], f3_name, days)
+    return {"data": result, "error": None, "meta": {"timestamp": now}}
+
+
+@router.get("/workouts/f3-aos")
+async def list_f3_aos(
+    user: dict = Depends(member_or_admin),
+):
+    """List DSM AO locations from F3 Nation API."""
+    now = datetime.now(timezone.utc).isoformat()
+    aos = await get_dsm_ao_list()
+    return {"data": aos, "error": None, "meta": {"timestamp": now}}

@@ -16,6 +16,7 @@ class ProfileUpdate(BaseModel):
     weight_unit: Optional[str] = None
     push_token: Optional[str] = None
     onboarded_at: Optional[bool] = None  # send True to stamp onboarded_at
+    f3_name: Optional[str] = None
 
 
 @router.get("/users/me")

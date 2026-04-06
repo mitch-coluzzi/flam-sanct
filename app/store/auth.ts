@@ -13,6 +13,7 @@ interface UserProfile {
   weight_unit: string;
   push_token: string | null;
   onboarded_at: string | null;
+  f3_name: string | null;
 }
 
 interface AuthState {
