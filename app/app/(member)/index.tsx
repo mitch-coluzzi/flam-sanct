@@ -68,14 +68,16 @@ export default function TodayScreen() {
   const [weight, setWeight] = useState("");
   const [mood, setMood] = useState<number | null>(null);
   const [moodNote, setMoodNote] = useState("");
-  const [abstainHit, setAbstainHit] = useState<boolean | null>(null);
-  const [growthHit, setGrowthHit] = useState<boolean | null>(null);
 
   // Reflection + Evening
   const [amReflection, setAmReflection] = useState("");
   const [pmReflection, setPmReflection] = useState("");
   const [eveningMood, setEveningMood] = useState<number | null>(null);
   const [passage, setPassage] = useState<any>(null);
+  const [abstainHit, setAbstainHit] = useState<boolean | null>(null);
+  const [growthHit, setGrowthHit] = useState<boolean | null>(null);
+  const [lifeEvent, setLifeEvent] = useState("");
+  const [lifeEventNote, setLifeEventNote] = useState("");
   const [grades, setGrades] = useState<Record<string, number | null>>({
     body: null, emotion: null, financial: null, relational: null, spiritual: null,
   });
@@ -97,6 +99,17 @@ export default function TodayScreen() {
   const [frGut, setFrGut] = useState("");
   const [frEnergy, setFrEnergy] = useState("");
   const [frNote, setFrNote] = useState("");
+
+  // Manual food entry
+  const [showManualFood, setShowManualFood] = useState(false);
+  const [mfName, setMfName] = useState("");
+  const [mfMeal, setMfMeal] = useState("lunch");
+  const [mfNarrative, setMfNarrative] = useState("");
+
+  // Photo narrative modal
+  const [showPhotoNarrative, setShowPhotoNarrative] = useState(false);
+  const [photoNarrative, setPhotoNarrative] = useState("");
+  const [pendingPhotoData, setPendingPhotoData] = useState<{ mealType: string; photoUrl: string } | null>(null);
 
   // Photo
   const [photoCapturing, setPhotoCapturing] = useState(false);
@@ -180,8 +193,6 @@ export default function TodayScreen() {
     if (sleepQuality) u.sleep_quality = sleepQuality;
     if (mood !== null) u.mood = mood;
     if (moodNote) u.mood_note = moodNote;
-    if (abstainHit !== null) u.abstain_hit = abstainHit;
-    if (growthHit !== null) u.growth_hit = growthHit;
     if (amReflection.trim()) u.am_reflection = amReflection.trim();
     if (weight) {
       u.weight_lbs = parseFloat(weight);
@@ -196,6 +207,10 @@ export default function TodayScreen() {
     const u: Record<string, any> = { updated_at: new Date().toISOString() };
     if (eveningMood !== null) u.evening_mood = eveningMood;
     if (pmReflection.trim()) u.pm_reflection = pmReflection.trim();
+    if (abstainHit !== null) u.abstain_hit = abstainHit;
+    if (growthHit !== null) u.growth_hit = growthHit;
+    if (lifeEvent) u.life_event = lifeEvent;
+    if (lifeEventNote.trim()) u.life_event_note = lifeEventNote.trim();
     if (grades.body !== null) u.grade_body = grades.body;
     if (grades.emotion !== null) u.grade_emotion = grades.emotion;
     if (grades.spiritual !== null) u.grade_spiritual = grades.spiritual;
@@ -260,15 +275,11 @@ export default function TodayScreen() {
     if (asset.base64) {
       await supabase.storage.from("food-photos").upload(path, decode(asset.base64), { contentType: `image/${ext === "png" ? "png" : "jpeg"}` });
     }
-    await supabase.from("food_logs").insert({
-      user_id: userId, log_date: TODAY, meal_type: mealType, source: "photo_capture",
-      food_name: "Photo capture — pending review",
-      photo_url: `${supabase.supabaseUrl}/storage/v1/object/food-photos/${path}`,
-      photo_capture_status: "pending",
-    });
+    const photoUrl = `${supabase.supabaseUrl}/storage/v1/object/food-photos/${path}`;
     setPhotoCapturing(false);
-    Alert.alert("Photo captured", "Your chef will review and confirm this shortly.");
-    loadToday();
+    // Store pending photo data, show narrative modal
+    setPendingPhotoData({ mealType, photoUrl });
+    setShowPhotoNarrative(true);
   };
 
   const submitFoodResponse = async () => {
@@ -280,6 +291,30 @@ export default function TodayScreen() {
     });
     setShowFoodResponse(false); setFrGut(""); setFrEnergy(""); setFrNote("");
     Alert.alert("Logged.");
+  };
+
+  const submitManualFood = async () => {
+    if (!userId || !mfName.trim()) return;
+    await supabase.from("food_logs").insert({
+      user_id: userId, log_date: TODAY, meal_type: mfMeal,
+      source: "self", food_name: mfName.trim(),
+      narrative: mfNarrative.trim() || null,
+    });
+    setShowManualFood(false); setMfName(""); setMfNarrative("");
+    Alert.alert("Logged.");
+    loadToday();
+  };
+
+  const submitPhotoWithNarrative = async (skip?: boolean) => {
+    if (!userId || !pendingPhotoData) return;
+    await supabase.from("food_logs").insert({
+      user_id: userId, log_date: TODAY, meal_type: pendingPhotoData.mealType, source: "photo_capture",
+      food_name: (!skip && photoNarrative.trim()) ? photoNarrative.trim() : "Photo capture — pending review",
+      photo_url: pendingPhotoData.photoUrl, photo_capture_status: "pending",
+      narrative: (!skip && photoNarrative.trim()) ? photoNarrative.trim() : null,
+    });
+    setShowPhotoNarrative(false); setPhotoNarrative(""); setPendingPhotoData(null);
+    loadToday();
   };
 
   const syncF3 = async () => {
@@ -338,6 +373,7 @@ export default function TodayScreen() {
         <View style={st.cardRow}>
           <Text style={st.cardTitle}>Nutrition</Text>
           <View style={{ flexDirection: "row", gap: 12 }}>
+            <TouchableOpacity onPress={() => setShowManualFood(true)}><Ionicons name="create-outline" size={20} color="#C0632A" /></TouchableOpacity>
             <TouchableOpacity onPress={() => setShowFoodResponse(true)}><Ionicons name="body-outline" size={20} color="#C0632A" /></TouchableOpacity>
             <TouchableOpacity onPress={() => Alert.alert("Snap Food Photo", "Which meal?", [
               { text: "Breakfast", onPress: () => captureFood("breakfast") }, { text: "Lunch", onPress: () => captureFood("lunch") },
@@ -412,25 +448,6 @@ export default function TodayScreen() {
           )}
           <TextInput style={[st.input, { marginTop: 8 }]} placeholder="Mood note (optional)" placeholderTextColor="#5C5A54" value={moodNote} onChangeText={setMoodNote} />
 
-          {profile?.abstain_label && (
-            <View style={st.trackerRow}>
-              <Text style={st.trackerLabel}>🚫 {profile.abstain_label}</Text>
-              <View style={st.trackerBtns}>
-                <TouchableOpacity style={[st.tBtn, abstainHit === true && st.tYes]} onPress={() => setAbstainHit(true)}><Text style={[st.tBtnText, abstainHit === true && st.onText]}>Yes</Text></TouchableOpacity>
-                <TouchableOpacity style={[st.tBtn, abstainHit === false && st.tNo]} onPress={() => setAbstainHit(false)}><Text style={[st.tBtnText, abstainHit === false && st.onText]}>No</Text></TouchableOpacity>
-              </View>
-            </View>
-          )}
-          {profile?.growth_label && (
-            <View style={st.trackerRow}>
-              <Text style={st.trackerLabel}>🌱 {profile.growth_label}</Text>
-              <View style={st.trackerBtns}>
-                <TouchableOpacity style={[st.tBtn, growthHit === true && st.tYes]} onPress={() => setGrowthHit(true)}><Text style={[st.tBtnText, growthHit === true && st.onText]}>Yes</Text></TouchableOpacity>
-                <TouchableOpacity style={[st.tBtn, growthHit === false && st.tNo]} onPress={() => setGrowthHit(false)}><Text style={[st.tBtnText, growthHit === false && st.onText]}>No</Text></TouchableOpacity>
-              </View>
-            </View>
-          )}
-
           {/* Stoic passage + AM reflection */}
           {passage && (
             <View style={st.stoicSection}>
@@ -477,6 +494,41 @@ export default function TodayScreen() {
           </View>
           {eveningMood !== null && eveningMood <= -4 && (
             <View style={st.crisisCard}><Text style={st.crisisText}>If you're in a tough spot, talking to someone helps. You don't have to carry it alone.</Text><Text style={st.crisisLink}>988 Suicide & Crisis Lifeline: call or text 988</Text></View>
+          )}
+
+          {/* Abstain + Growth */}
+          {profile?.abstain_label && (
+            <View style={st.trackerRow}>
+              <Text style={st.trackerLabel}>🚫 {profile.abstain_label}</Text>
+              <View style={st.trackerBtns}>
+                <TouchableOpacity style={[st.tBtn, abstainHit === true && st.tYes]} onPress={() => setAbstainHit(true)}><Text style={[st.tBtnText, abstainHit === true && st.onText]}>Yes</Text></TouchableOpacity>
+                <TouchableOpacity style={[st.tBtn, abstainHit === false && st.tNo]} onPress={() => setAbstainHit(false)}><Text style={[st.tBtnText, abstainHit === false && st.onText]}>No</Text></TouchableOpacity>
+              </View>
+            </View>
+          )}
+          {profile?.growth_label && (
+            <View style={st.trackerRow}>
+              <Text style={st.trackerLabel}>🌱 {profile.growth_label}</Text>
+              <View style={st.trackerBtns}>
+                <TouchableOpacity style={[st.tBtn, growthHit === true && st.tYes]} onPress={() => setGrowthHit(true)}><Text style={[st.tBtnText, growthHit === true && st.onText]}>Yes</Text></TouchableOpacity>
+                <TouchableOpacity style={[st.tBtn, growthHit === false && st.tNo]} onPress={() => setGrowthHit(false)}><Text style={[st.tBtnText, growthHit === false && st.onText]}>No</Text></TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Life event */}
+          <Text style={st.label}>Anything notable today?</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+            <View style={st.chipRow}>
+              {["Date night", "Social event", "Travel", "Sick day", "Rest day", "Family", "Work event"].map((e) => (
+                <TouchableOpacity key={e} style={[st.chip, lifeEvent === e && st.chipOn]} onPress={() => setLifeEvent(lifeEvent === e ? "" : e)}>
+                  <Text style={[st.chipText, lifeEvent === e && st.onText]}>{e}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+          {lifeEvent !== "" && (
+            <TextInput style={st.input} placeholder="Add a note (optional)" placeholderTextColor="#5C5A54" value={lifeEventNote} onChangeText={setLifeEventNote} />
           )}
 
           <Text style={st.label}>Life check — how are you today?</Text>
@@ -581,6 +633,33 @@ export default function TodayScreen() {
           <View style={st.chipRow}>{["steady","crash","spike","sluggish"].map((e) => (<TouchableOpacity key={e} style={[st.chip, frEnergy === e && st.chipOn]} onPress={() => setFrEnergy(frEnergy===e?"":e)}><Text style={[st.chipText, frEnergy === e && st.onText]}>{e.charAt(0).toUpperCase()+e.slice(1)}</Text></TouchableOpacity>))}</View>
           <TextInput style={[st.input, { marginTop: 12, minHeight: 60, textAlignVertical: "top" }]} placeholder="Notes (optional)" placeholderTextColor="#5C5A54" value={frNote} onChangeText={setFrNote} multiline />
           <TouchableOpacity style={st.cta} onPress={submitFoodResponse}><Text style={st.ctaText}>Log Response</Text></TouchableOpacity>
+        </View></View>
+      </Modal>
+
+      {/* ── MANUAL FOOD MODAL ── */}
+      <Modal visible={showManualFood} animationType="slide" transparent>
+        <View style={st.modalOverlay}><View style={st.modal}>
+          <View style={st.cardRow}><Text style={st.cardTitle}>Log Food</Text><TouchableOpacity onPress={() => setShowManualFood(false)}><Ionicons name="close" size={24} color="#9C9A94" /></TouchableOpacity></View>
+          <Text style={st.label}>Meal</Text>
+          <View style={st.chipRow}>{["breakfast","lunch","dinner","snack"].map((m) => (<TouchableOpacity key={m} style={[st.chip, mfMeal === m && st.chipOn]} onPress={() => setMfMeal(m)}><Text style={[st.chipText, mfMeal === m && st.onText]}>{m.charAt(0).toUpperCase()+m.slice(1)}</Text></TouchableOpacity>))}</View>
+          <Text style={st.label}>What did you eat?</Text>
+          <TextInput style={st.input} placeholder="Chicken and rice, 2 slices pizza..." placeholderTextColor="#5C5A54" value={mfName} onChangeText={setMfName} />
+          <Text style={st.label}>Details (optional)</Text>
+          <TextInput style={[st.input, { minHeight: 50, textAlignVertical: "top" }]} placeholder="Portion size, how it was prepared..." placeholderTextColor="#5C5A54" value={mfNarrative} onChangeText={setMfNarrative} multiline />
+          <TouchableOpacity style={st.cta} onPress={submitManualFood}><Text style={st.ctaText}>Log Food</Text></TouchableOpacity>
+        </View></View>
+      </Modal>
+
+      {/* ── PHOTO NARRATIVE MODAL ── */}
+      <Modal visible={showPhotoNarrative} animationType="fade" transparent>
+        <View style={st.modalOverlay}><View style={[st.modal, { maxHeight: "50%" }]}>
+          <Text style={st.cardTitle}>Describe what's in the photo</Text>
+          <Text style={st.muted}>Helps your chef and AI estimate better.</Text>
+          <TextInput style={[st.input, { marginTop: 12, minHeight: 60, textAlignVertical: "top" }]} placeholder="Herb chicken, about half a plate, side salad..." placeholderTextColor="#5C5A54" value={photoNarrative} onChangeText={setPhotoNarrative} multiline autoFocus />
+          <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
+            <TouchableOpacity style={[st.cta, { flex: 1 }]} onPress={() => submitPhotoWithNarrative()}><Text style={st.ctaText}>Save</Text></TouchableOpacity>
+            <TouchableOpacity style={[st.chip, { flex: 1, alignItems: "center", paddingVertical: 14 }]} onPress={() => submitPhotoWithNarrative(true)}><Text style={st.chipText}>Skip</Text></TouchableOpacity>
+          </View>
         </View></View>
       </Modal>
     </ScrollView>
