@@ -20,8 +20,8 @@ function TodayHeader() {
 const h = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: SCREEN_W - 32 },
   date: { fontSize: 15, fontWeight: "600", color: "#F0EDE6" },
-  phase: { fontSize: 11, fontWeight: "700", color: "#C0632A", letterSpacing: 2 },
-  name: { fontSize: 14, fontWeight: "700", color: "#9C9A94" },
+  phase: { fontSize: 14, fontWeight: "700", color: "#C0632A", letterSpacing: 2 },
+  name: { fontSize: 16, fontWeight: "700", color: "#F0EDE6" },
 });
 
 export default function MemberLayout() {
