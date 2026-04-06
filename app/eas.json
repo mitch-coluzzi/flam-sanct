@@ -17,16 +17,5 @@
       "ios": {}
     }
   },
-  "submit": {
-    "production": {
-      "android": {
-        "serviceAccountKeyPath": "",
-        "track": "internal"
-      },
-      "ios": {
-        "appleId": "",
-        "ascAppId": ""
-      }
-    }
-  }
+  "submit": {}
 }

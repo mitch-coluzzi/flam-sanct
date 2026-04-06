@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "flamsanct",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -23,7 +23,10 @@
         "backgroundColor": "#1C1C1A"
       },
       "package": "com.flamsanct.app",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -40,8 +43,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": ""
-      }
+        "projectId": "aee74752-e433-490c-8af9-ccfc3cd84bc3"
+      },
+      "router": {}
     }
   }
 }
