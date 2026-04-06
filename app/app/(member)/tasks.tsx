@@ -13,14 +13,18 @@ interface Task {
   description: string | null;
   completed: boolean;
   sort_order: number;
+  list_type: "task" | "quote";
   completed_at: string | null;
   created_at: string;
 }
+
+type ListType = "task" | "quote";
 
 export default function TasksScreen() {
   const profile = useAuthStore((s) => s.profile);
   const userId = profile?.id;
 
+  const [listType, setListType] = useState<ListType>("task");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +41,9 @@ export default function TasksScreen() {
   const [editTitle, setEditTitle] = useState("");
   const [editDesc, setEditDesc] = useState("");
 
-  useEffect(() => { if (userId) loadTasks(); }, [userId]);
+  useEffect(() => { if (userId) loadTasks(); }, [userId, listType]);
+
+  const isQuote = listType === "quote";
 
   const loadTasks = async () => {
     if (!userId) return;
@@ -45,13 +51,13 @@ export default function TasksScreen() {
 
     const { data: active } = await supabase
       .from("tasks").select("*")
-      .eq("user_id", userId).eq("completed", false)
+      .eq("user_id", userId).eq("completed", false).eq("list_type", listType)
       .order("sort_order").order("created_at", { ascending: false });
     setTasks(active || []);
 
     const { data: done } = await supabase
       .from("tasks").select("*")
-      .eq("user_id", userId).eq("completed", true)
+      .eq("user_id", userId).eq("completed", true).eq("list_type", listType)
       .order("completed_at", { ascending: false })
       .limit(50);
     setCompletedTasks(done || []);
@@ -67,6 +73,7 @@ export default function TasksScreen() {
       title: newTitle.trim(),
       description: newDesc.trim() || null,
       sort_order: minOrder,
+      list_type: listType,
     });
     setNewTitle("");
     setNewDesc("");
@@ -98,7 +105,7 @@ export default function TasksScreen() {
   };
 
   const deleteTask = (task: Task) => {
-    Alert.alert("Delete task?", task.title, [
+    Alert.alert(`Delete ${isQuote ? "quote" : "task"}?`, task.title, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete", style: "destructive",
@@ -138,14 +145,15 @@ export default function TasksScreen() {
             value={editTitle}
             onChangeText={setEditTitle}
             autoFocus
-            onSubmitEditing={saveEdit}
-            returnKeyType="done"
+            placeholder={isQuote ? "Quote text" : "Task"}
+            placeholderTextColor="#5C5A54"
+            multiline={isQuote}
           />
           <TextInput
             style={[st.editInput, st.editDesc]}
             value={editDesc}
             onChangeText={setEditDesc}
-            placeholder="Description (optional)"
+            placeholder={isQuote ? "Author / source (optional)" : "Description (optional)"}
             placeholderTextColor="#5C5A54"
             multiline
           />
@@ -164,18 +172,30 @@ export default function TasksScreen() {
     return (
       <View style={st.taskCard}>
         <View style={st.taskRow}>
-          <TouchableOpacity onPress={() => toggleTask(item)} style={st.checkbox}>
-            <Ionicons
-              name={item.completed ? "checkbox" : "square-outline"}
-              size={24}
-              color={item.completed ? "#C0632A" : "#5C5A54"}
-            />
-          </TouchableOpacity>
+          {!isQuote && (
+            <TouchableOpacity onPress={() => toggleTask(item)} style={st.checkbox}>
+              <Ionicons
+                name={item.completed ? "checkbox" : "square-outline"}
+                size={24}
+                color={item.completed ? "#C0632A" : "#5C5A54"}
+              />
+            </TouchableOpacity>
+          )}
+          {isQuote && <Ionicons name="chatbox-ellipses-outline" size={20} color="#5C5A54" style={st.checkbox} />}
           <TouchableOpacity style={st.taskContent} onPress={() => startEdit(item)} onLongPress={() => deleteTask(item)}>
-            <Text style={[st.taskTitle, item.completed && st.taskDone]}>{item.title}</Text>
-            {item.description && <Text style={st.taskDesc}>{item.description}</Text>}
+            {isQuote ? (
+              <>
+                <Text style={st.quoteText}>"{item.title}"</Text>
+                {item.description && <Text style={st.quoteAuthor}>— {item.description}</Text>}
+              </>
+            ) : (
+              <>
+                <Text style={[st.taskTitle, item.completed && st.taskDone]}>{item.title}</Text>
+                {item.description && <Text style={st.taskDesc}>{item.description}</Text>}
+              </>
+            )}
           </TouchableOpacity>
-          {!item.completed && (
+          {!item.completed && !isQuote && (
             <View style={st.reorderBtns}>
               <TouchableOpacity onPress={() => moveTask(item, "up")} disabled={index === 0}>
                 <Ionicons name="chevron-up" size={18} color={index === 0 ? "#3D3C38" : "#9C9A94"} />
@@ -198,6 +218,18 @@ export default function TasksScreen() {
 
   return (
     <View style={st.container}>
+      {/* Toggle */}
+      <View style={st.toggleRow}>
+        <TouchableOpacity style={[st.toggleBtn, listType === "task" && st.toggleActive]} onPress={() => setListType("task")}>
+          <Ionicons name="checkbox-outline" size={18} color={listType === "task" ? "#1C1C1A" : "#9C9A94"} />
+          <Text style={[st.toggleText, listType === "task" && st.toggleActiveText]}>Tasks</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[st.toggleBtn, listType === "quote" && st.toggleActive]} onPress={() => setListType("quote")}>
+          <Ionicons name="chatbox-ellipses-outline" size={18} color={listType === "quote" ? "#1C1C1A" : "#9C9A94"} />
+          <Text style={[st.toggleText, listType === "quote" && st.toggleActiveText]}>Quotes</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Inline add */}
       <View style={st.addCard}>
         <View style={st.addRow}>
@@ -207,20 +239,21 @@ export default function TasksScreen() {
           <TextInput
             ref={inputRef}
             style={st.addInput}
-            placeholder="Add a task"
+            placeholder={isQuote ? "Add a quote" : "Add a task"}
             placeholderTextColor="#5C5A54"
             value={newTitle}
             onChangeText={(t) => { setNewTitle(t); if (t.length === 1 && !addExpanded) setAddExpanded(true); }}
             onSubmitEditing={() => { if (!newDesc && !addExpanded) addTask(); }}
             onFocus={() => setAddExpanded(true)}
             returnKeyType={addExpanded ? "next" : "done"}
+            multiline={isQuote}
           />
         </View>
         {addExpanded && (
           <>
             <TextInput
               style={st.addDescInput}
-              placeholder="Add details"
+              placeholder={isQuote ? "Author / source" : "Add details"}
               placeholderTextColor="#5C5A54"
               value={newDesc}
               onChangeText={setNewDesc}
@@ -243,9 +276,13 @@ export default function TasksScreen() {
         keyExtractor={(t) => t.id}
         renderItem={renderTask}
         contentContainerStyle={{ paddingBottom: 16 }}
-        ListEmptyComponent={<Text style={st.empty}>Nothing to do. You know what to do.</Text>}
+        ListEmptyComponent={
+          <Text style={st.empty}>
+            {isQuote ? "No quotes yet. Save the words that matter." : "Nothing to do. You know what to do."}
+          </Text>
+        }
         ListFooterComponent={
-          completedTasks.length > 0 ? (
+          completedTasks.length > 0 && !isQuote ? (
             <View>
               <TouchableOpacity style={st.completedToggle} onPress={() => setShowCompleted(!showCompleted)}>
                 <Ionicons name={showCompleted ? "chevron-down" : "chevron-forward"} size={18} color="#5C5A54" />
@@ -257,8 +294,9 @@ export default function TasksScreen() {
                     <TouchableOpacity onPress={() => toggleTask(t)} style={st.checkbox}>
                       <Ionicons name="checkbox" size={24} color="#5C5A54" />
                     </TouchableOpacity>
-                    <TouchableOpacity style={st.taskContent} onLongPress={() => deleteTask(t)}>
+                    <TouchableOpacity style={st.taskContent} onPress={() => startEdit(t)} onLongPress={() => deleteTask(t)}>
                       <Text style={st.taskDone}>{t.title}</Text>
+                      {t.description && <Text style={st.taskDescDone}>{t.description}</Text>}
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -273,6 +311,11 @@ export default function TasksScreen() {
 
 const st = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#1C1C1A", padding: 16 },
+  toggleRow: { flexDirection: "row", gap: 6, marginBottom: 12 },
+  toggleBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: 8, backgroundColor: "#2E2D2A", borderWidth: 0.5, borderColor: "#5C5A54" },
+  toggleActive: { backgroundColor: "#C0632A", borderColor: "#C0632A" },
+  toggleText: { color: "#9C9A94", fontWeight: "600", fontSize: 14 },
+  toggleActiveText: { color: "#1C1C1A" },
   addCard: { backgroundColor: "#2E2D2A", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 0.5, borderColor: "#5C5A54", marginBottom: 16 },
   addRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   addInput: { flex: 1, color: "#F0EDE6", fontSize: 16, paddingVertical: 6 },
@@ -287,7 +330,10 @@ const st = StyleSheet.create({
   taskContent: { flex: 1 },
   taskTitle: { fontSize: 16, color: "#F0EDE6", lineHeight: 22 },
   taskDesc: { fontSize: 13, color: "#9C9A94", marginTop: 2, lineHeight: 18 },
+  taskDescDone: { fontSize: 12, color: "#3D3C38", marginTop: 2, lineHeight: 16, textDecorationLine: "line-through" },
   taskDone: { fontSize: 16, color: "#5C5A54", textDecorationLine: "line-through" },
+  quoteText: { fontSize: 15, color: "#F0EDE6", fontStyle: "italic", lineHeight: 22 },
+  quoteAuthor: { fontSize: 13, color: "#9C9A94", marginTop: 4 },
   reorderBtns: { marginLeft: 8, justifyContent: "center", gap: 2 },
   editInput: { backgroundColor: "#1C1C1A", color: "#F0EDE6", borderRadius: 6, padding: 10, fontSize: 15, borderWidth: 0.5, borderColor: "#5C5A54", marginBottom: 6 },
   editDesc: { minHeight: 50, textAlignVertical: "top" },

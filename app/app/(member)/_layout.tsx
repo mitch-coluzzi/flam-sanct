@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet, Dimensions } from "react-native";
-import { Tabs } from "expo-router";
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from "react-native";
+import { Tabs, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../store/auth";
 
@@ -24,6 +24,15 @@ const h = StyleSheet.create({
   name: { fontSize: 16, fontWeight: "700", color: "#F0EDE6" },
 });
 
+function SettingsIcon() {
+  const router = useRouter();
+  return (
+    <TouchableOpacity onPress={() => router.push("/(member)/settings")} style={{ paddingHorizontal: 16 }}>
+      <Ionicons name="settings-outline" size={22} color="#9C9A94" />
+    </TouchableOpacity>
+  );
+}
+
 export default function MemberLayout() {
   return (
     <Tabs
@@ -37,6 +46,7 @@ export default function MemberLayout() {
         headerStyle: { backgroundColor: "#1C1C1A" },
         headerTintColor: "#F0EDE6",
         headerTitleStyle: { fontWeight: "700" },
+        headerRight: () => <SettingsIcon />,
       }}
     >
       <Tabs.Screen
@@ -101,6 +111,13 @@ export default function MemberLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="sparkles" size={size} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+          href: null,
         }}
       />
     </Tabs>
