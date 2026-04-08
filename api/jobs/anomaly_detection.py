@@ -80,6 +80,40 @@ async def run_anomaly_detection_job():
             body=anomalies[0]["short_message"],
         )
 
+        # Auto-post to chef↔member conversation if food/health-related anomaly
+        food_related_types = {"nutrition_alert", "protein_alert", "plateau_alert", "overtraining_alert"}
+        is_food_related = any(a.get("type") in food_related_types for a in anomalies)
+        if is_food_related:
+            # Find chef assignment
+            assignment = (
+                sb.table("chef_assignments")
+                .select("chef_id")
+                .eq("member_id", user_id)
+                .eq("active", True)
+                .limit(1)
+                .execute()
+            )
+            if assignment.data:
+                chef_id = assignment.data[0]["chef_id"]
+                # Find DM conversation
+                my_parts = sb.table("conversation_participants").select("conversation_id").eq("user_id", user_id).execute()
+                my_ids = [p["conversation_id"] for p in (my_parts.data or [])]
+                if my_ids:
+                    chef_parts = sb.table("conversation_participants").select("conversation_id").eq("user_id", chef_id).in_("conversation_id", my_ids).execute()
+                    if chef_parts.data:
+                        cid = chef_parts.data[0]["conversation_id"]
+                        # Build key points from anomaly types
+                        key_points = [a["short_message"] for a in anomalies if a.get("type") in food_related_types][:3]
+                        category = "nutrition" if any(a.get("type") in {"nutrition_alert", "protein_alert", "plateau_alert"} for a in anomalies) else "training"
+                        sb.table("messages").insert({
+                            "conversation_id": cid,
+                            "sender_id": user_id,
+                            "body": alert_text,
+                            "message_type": "ai_digest",
+                            "ai_key_points": key_points,
+                            "ai_category": category,
+                        }).execute()
+
         checked += 1
         flagged += 1
 

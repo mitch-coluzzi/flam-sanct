@@ -107,15 +107,7 @@ export default function MessagesScreen() {
   const openConversation = async (conv: Conversation) => {
     setActiveConv(conv);
     if (!userId) return;
-
-    const { data } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("conversation_id", conv.id)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: true })
-      .limit(50);
-    setMessages(data || []);
+    await loadConversationMessages(conv.id);
 
     // Mark as read
     await supabase
@@ -126,18 +118,55 @@ export default function MessagesScreen() {
       .is("read_at", null);
   };
 
+  const loadConversationMessages = async (cid: string) => {
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("conversation_id", cid)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true })
+      .limit(50);
+    setMessages(data || []);
+  };
+
+  // Real-time subscription
+  useEffect(() => {
+    if (!activeConv) return;
+    const channel = supabase
+      .channel(`conv:${activeConv.id}`)
+      .on(
+        "postgres_changes" as any,
+        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${activeConv.id}` },
+        () => loadConversationMessages(activeConv.id),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [activeConv]);
+
   const sendMessage = async () => {
     if (!userId || !activeConv || !newMsg.trim()) return;
     setSending(true);
+    const text = newMsg.trim();
+    setNewMsg("");
     await supabase.from("messages").insert({
       conversation_id: activeConv.id,
       sender_id: userId,
-      body: newMsg.trim(),
+      body: text,
       message_type: "text",
     });
-    setNewMsg("");
     setSending(false);
-    openConversation(activeConv);
+
+    // Check for @ai summon
+    if (text.toLowerCase().includes("@ai")) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await fetch(`https://api.flamsanct.com/v1/messages/conversations/${activeConv.id}/summon-ai`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+          body: JSON.stringify({ prompt: text, member_id: userId }),
+        });
+      } catch {}
+    }
   };
 
   const timeAgo = (ts: string | null) => {
@@ -171,13 +200,33 @@ export default function MessagesScreen() {
           data={messages}
           keyExtractor={(m) => m.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
-          renderItem={({ item }) => (
-            <View style={[st.bubble, item.sender_id === userId ? st.bubbleMine : st.bubbleTheirs]}>
-              <Text style={[st.bubbleText, item.message_type === "system" && st.systemText]}>
-                {item.body}
-              </Text>
-            </View>
-          )}
+          renderItem={({ item }) => {
+            const isAi = item.message_type === "ai_digest";
+            const isMine = item.sender_id === userId && !isAi;
+            const isSystem = item.message_type === "system";
+
+            return (
+              <View style={[st.bubbleWrap, isMine ? { alignItems: "flex-end" } : { alignItems: "flex-start" }]}>
+                {isAi && <Text style={st.aiLabel}>FlamSanct AI ✦</Text>}
+                <View style={[
+                  st.bubble,
+                  isMine ? st.bubbleMine : isAi ? st.bubbleAi : st.bubbleTheirs,
+                ]}>
+                  <Text style={[st.bubbleText, isSystem && st.systemText]}>
+                    {item.body}
+                  </Text>
+                </View>
+                {isAi && item.ai_key_points && item.ai_key_points.length > 0 && (
+                  <View style={st.keyPointsBox}>
+                    <Text style={st.keyPointsLabel}>KEY POINTS</Text>
+                    {item.ai_key_points.map((kp: string, i: number) => (
+                      <Text key={i} style={st.keyPointText}>• {kp}</Text>
+                    ))}
+                  </View>
+                )}
+              </View>
+            );
+          }}
         />
 
         <View style={st.inputBar}>
@@ -262,7 +311,13 @@ const st = StyleSheet.create({
   convName: { fontSize: 18, fontWeight: "700", color: "#F0EDE6" },
   chefBadge: { backgroundColor: "#3D3C38", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 },
   chefBadgeText: { fontSize: 11, fontWeight: "700", color: "#C0632A", letterSpacing: 1 },
-  bubble: { maxWidth: "80%", borderRadius: 12, padding: 12, marginBottom: 8 },
+  bubbleWrap: { marginBottom: 12 },
+  aiLabel: { fontSize: 11, fontWeight: "700", color: "#C0632A", letterSpacing: 1, marginBottom: 4 },
+  bubble: { maxWidth: "85%", borderRadius: 12, padding: 12 },
+  bubbleAi: { backgroundColor: "#1C1C1A", borderWidth: 1, borderColor: "#C0632A" },
+  keyPointsBox: { marginTop: 6, maxWidth: "85%", backgroundColor: "#1C1C1A", borderWidth: 0.5, borderColor: "#3D3C38", borderRadius: 8, padding: 10 },
+  keyPointsLabel: { fontSize: 10, fontWeight: "700", color: "#C0632A", letterSpacing: 1.5, marginBottom: 4 },
+  keyPointText: { fontSize: 12, color: "#F0EDE6", paddingVertical: 1 },
   bubbleMine: { backgroundColor: "#C0632A", alignSelf: "flex-end" },
   bubbleTheirs: { backgroundColor: "#2E2D2A", alignSelf: "flex-start" },
   bubbleText: { fontSize: 15, color: "#F0EDE6" },
