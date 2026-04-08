@@ -1,6 +1,6 @@
 # FlamSanct — Claude Chat Context
-**Version:** 2.2
-**Last Updated:** 2026-04-06
+**Version:** 2.3
+**Last Updated:** 2026-04-07
 **Purpose:** Design session context. Load this file at the start of any Claude.ai design session for FlamSanct. Do not use for Claude Code sessions — use docs/CONTEXT.md instead.
 
 ---
@@ -161,6 +161,7 @@ Items not yet locked. Discuss in future design sessions.
 | 2.0 | 2026-04-05 | All member screens built with live Supabase: Today (check-in, workout modal, nutrition summary, Stoic reflection), History (day list w/ detail expand), Progress (weight delta, benchmarks w/ PR detection, streak), Community (feed, Flam toggle, compose), Messages (conversation list, DM chat), Ask FlamSanct (AI query stub). Railway deployment config added. |
 | 2.1 | 2026-04-05 | MVP 1.0.0. AI query wired to live Railway API. Chef screens: dashboard (members/photos/directives tabs), recipe manager (CRUD + tags + macros), member detail view. Admin panel: user management + role assignment + chef pairing + auto-DM + Stoic passage curation. 30 Stoic passages seeded (Marcus Aurelius, Epictetus, Seneca). FastAPI live at api.flamsanct.com. |
 | 2.2 | 2026-04-06 | Iteration round. 1.0.1: mood scale switched to -4 to +4 therapist scale (Crisis→Peak), sleep quality -2 to +2 inline, weekly weight cadence, F3 AO dropdown, RPE labels (Rest→Max), Stoic fallback always shows passage, abstain/growth daily trackers with custom labels, food response tracker (gut/energy), body photo opt-in monthly, life aspect grades (Body/Mind/Spirit/Relation/Finance) -2 to +2, AM/PM reflections split, photo opt-out. 1.0.5: Tasks tab Google-style with Tasks/Quotes toggle. 1.0.7: Settings screen + header redesign. 1.0.8-9: Chef view switching, AI nutrition estimation on pending photos, tappable awaiting-review entries. 1.1.0: Custom trackers in single row with +/- icons, life events on evening, Day Complete summary shows full reflections + grades + journal section for post-completion long-form writing. |
+| 2.3 | 2026-04-07 | Chef Next.js + Tailwind web interface in web/. USDA recipe builder with ingredient search and live macro recalculation. Member detail page nutrition-focused (weight trend with sparkline, 7-day averages, today's food log, food responses, today's activity, directives). AI conversation thread (chef ↔ member ↔ AI) — text-message style three-voice rendering, pinned key points, ai_category tagging. @ai summon endpoint reads recent thread + member context, posts back with KEY_POINTS/CATEGORY parsing. Real-time Supabase subscriptions on chef web AND member mobile messages screen. Auto-summon AI from anomaly_detection job for food/health anomalies. Photo library upload alongside camera (food + body). Schemas 016 (chef RLS extended) + 017 (directive_comments + messages.ai_key_points/category/is_pinned). |
 
 ---
 

@@ -211,15 +211,16 @@ Updated at the end of each Claude Code session.
 | Tasks + Settings | 2026-04-06 | 1.0.5-1.0.7 | Tasks tab (Google-style), Tasks/Quotes toggle, Settings screen (profile, F3 name, abstain/growth labels, body photo toggle, view switcher, sign out), header redesign (date/THE GRIND/name). |
 | Chef + AI | 2026-04-06 | 1.0.8-1.0.9 | Chef view switching, AI nutrition estimates on pending photos via Vision endpoint, tappable awaiting-review entries with full edit modal. |
 | Day Complete | 2026-04-06 | 1.1.0 | Custom trackers single row +/- icons, life events, Day Complete shows full reflections, life grades, life event, post-completion journal entry. |
+| Chef Web | 2026-04-07 | 1.2.0 | Next.js + Tailwind chef interface (web/), USDA recipe builder w/ ingredient search and live macros, member detail w/ weight trend + sparkline, AI conversation thread (chef ↔ member ↔ AI), @ai summon, real-time Supabase subscriptions both sides, auto-summon on food anomalies, photo library upload (camera or gallery). |
 
 ---
 
 ## 8. Current Build State
 
-**Platform Version:** 1.1.0
-**Last Claude Code Session:** Day Complete + journal (2026-04-06)
-**Current Step:** Iterating on feedback. Smart AM/PM check-in, life grades, journal, AI photo estimation all live.
-**Next Action:** Brand assets from designer. EAS build (gesture-handler issue resolved with new arch). Cleanup for first cohort onboarding.
+**Platform Version:** 1.2.0
+**Last Claude Code Session:** Chef web + AI conversation (2026-04-07)
+**Current Step:** Chef Next.js interface live, AI conversation thread shipping. Web service needs Railway deploy.
+**Next Action:** Deploy web/ to Railway as second service. Admin learning aggregation screen. Brand assets. EAS production build.
 
 ---
 
@@ -259,6 +260,7 @@ Increment on each Claude Code session that produces shippable code.
 | 1.0.8 | 2026-04-06 | Chef view switching. AI nutrition estimates on pending photos via /food-logs/{id}/estimate. |
 | 1.0.9 | 2026-04-06 | Awaiting review tappable to edit details (food name, calories, macros, narrative). |
 | 1.1.0 | 2026-04-06 | Day Complete shows full reflections + life grades + life event. Custom trackers single row +/-. Post-completion journal entry. |
+| 1.2.0 | 2026-04-07 | Chef Next.js web interface (web/), USDA recipe builder, member detail w/ weight trend, AI conversation thread, @ai summon, real-time both sides, auto-summon on food anomalies, photo library upload. |
 
 **Versioning convention:**
 `0.X.0` — major spec or architecture additions during pre-launch
