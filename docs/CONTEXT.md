@@ -217,10 +217,10 @@ Updated at the end of each Claude Code session.
 
 ## 8. Current Build State
 
-**Platform Version:** 1.3.0
-**Last Claude Code Session:** Quick wins batch (2026-04-07)
-**Current Step:** Sleep bug fixed, member parity (Progress chart + body photo timeline + Goals), Admin Insights tab live.
-**Next Action:** Deploy web/ to Railway with chef. subdomain. Wire prompt_modifications approval flow. Brand assets.
+**Platform Version:** 1.4.0
+**Last Claude Code Session:** Quick wins round 2 (2026-04-07)
+**Current Step:** AI learning loop wired end-to-end. Member Inbox + streak. Chef web Settings + Stoic CRUD.
+**Next Action:** Deploy web/ to Railway with chef.flamsanct.com domain. Brand assets. EAS production build.
 
 ---
 
@@ -264,6 +264,7 @@ Increment on each Claude Code session that produces shippable code.
 | 1.3.0 | 2026-04-07 | Sleep null-safe. Member Progress: sparkline + photo timeline + Goals. Admin Insights aggregation tab. AM/PM 4 PM cutoff with evening-first catch-up. |
 | 1.2.1 | 2026-04-07 | AM/PM time-of-day cutoff (4 PM), evening-first ordering with catch-up at bottom (drops AM mood). |
 | 1.3.0 | 2026-04-07 | Sleep quality null-safe save. Member Progress: weight sparkline + body photo timeline + Goals UI (full CRUD). Admin Insights tab — aggregates AI key points by category, shows recurring patterns for prompt refinement. New table: prompt_modifications. |
+| 1.4.0 | 2026-04-07 | Prompt approval flow wired into AI summon (admin → permanent Claude refinements). Stoic edit/deactivate (tap to edit, long-press to deactivate). Daily streak badge in Today header. Member Inbox tab for AI insights. Chef web Settings page. |
 
 **Versioning convention:**
 `0.X.0` — major spec or architecture additions during pre-launch

@@ -37,6 +37,18 @@ export default function AdminScreen() {
   const profile = useAuthStore((s) => s.profile);
   const [tab, setTab] = useState<"users" | "assignments" | "stoic" | "insights">("users");
   const [aiMessages, setAiMessages] = useState<any[]>([]);
+  const [approvedMods, setApprovedMods] = useState<any[]>([]);
+
+  // Approve modal
+  const [approvingPattern, setApprovingPattern] = useState<{ category: string; pattern: string; count: number } | null>(null);
+  const [modText, setModText] = useState("");
+
+  // Edit Stoic
+  const [editingPassage, setEditingPassage] = useState<any>(null);
+  const [epAuthor, setEpAuthor] = useState("");
+  const [epSource, setEpSource] = useState("");
+  const [epText, setEpText] = useState("");
+  const [epTags, setEpTags] = useState("");
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [assignments, setAssignments] = useState<ChefAssignment[]>([]);
@@ -79,7 +91,6 @@ export default function AdminScreen() {
       const { data } = await supabase.from("stoic_passages").select("*").eq("is_active", true).order("author").limit(50);
       setPassages(data || []);
     } else if (tab === "insights") {
-      // Last 30 days of AI messages with key points
       const thirtyAgo = new Date(Date.now() - 30 * 86400000).toISOString();
       const { data } = await supabase
         .from("messages")
@@ -90,6 +101,12 @@ export default function AdminScreen() {
         .order("created_at", { ascending: false })
         .limit(100);
       setAiMessages(data || []);
+      const { data: mods } = await supabase
+        .from("prompt_modifications")
+        .select("*")
+        .eq("approved", true)
+        .order("approved_at", { ascending: false });
+      setApprovedMods(mods || []);
     }
     setLoading(false);
   };
@@ -129,6 +146,54 @@ export default function AdminScreen() {
     setAssignChef("");
     setAssignMember("");
     loadData();
+  };
+
+  const approvePattern = async () => {
+    if (!approvingPattern || !modText.trim()) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from("prompt_modifications").insert({
+      category: approvingPattern.category,
+      pattern_text: approvingPattern.pattern,
+      modification_text: modText.trim(),
+      approved: true,
+      approved_by: user?.id,
+      approved_at: new Date().toISOString(),
+      source_message_count: approvingPattern.count,
+    });
+    setApprovingPattern(null);
+    setModText("");
+    loadData();
+  };
+
+  const startEditPassage = (p: any) => {
+    setEditingPassage(p);
+    setEpAuthor(p.author);
+    setEpSource(p.source || "");
+    setEpText(p.passage);
+    setEpTags((p.tags || []).join(", "));
+  };
+
+  const saveEditPassage = async () => {
+    if (!editingPassage) return;
+    await supabase.from("stoic_passages").update({
+      author: epAuthor.trim(),
+      source: epSource.trim() || null,
+      passage: epText.trim(),
+      tags: epTags ? epTags.split(",").map((t) => t.trim()) : null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", editingPassage.id);
+    setEditingPassage(null);
+    loadData();
+  };
+
+  const deactivatePassage = (id: string, passage: string) => {
+    Alert.alert("Deactivate passage?", passage.substring(0, 80) + "...", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Deactivate", style: "destructive", onPress: async () => {
+        await supabase.from("stoic_passages").update({ is_active: false }).eq("id", id);
+        loadData();
+      }},
+    ]);
   };
 
   const addPassage = async () => {
@@ -207,11 +272,11 @@ export default function AdminScreen() {
             </TouchableOpacity>
             <Text style={st.countText}>{passages.length} passages in library</Text>
             {passages.map((p) => (
-              <View key={p.id} style={st.card}>
+              <TouchableOpacity key={p.id} style={st.card} onPress={() => startEditPassage(p)} onLongPress={() => deactivatePassage(p.id, p.passage)}>
                 <Text style={st.passage}>"{p.passage.substring(0, 120)}{p.passage.length > 120 ? "..." : ""}"</Text>
                 <Text style={st.attribution}>— {p.author}{p.source ? `, ${p.source}` : ""}</Text>
                 {p.tags && <View style={st.tagRow}>{p.tags.map((t: string, i: number) => <View key={i} style={st.tag}><Text style={st.tagText}>{t}</Text></View>)}</View>}
-              </View>
+              </TouchableOpacity>
             ))}
           </>
         )}
@@ -249,10 +314,10 @@ export default function AdminScreen() {
                       <Text style={st.muted}>No patterns yet.</Text>
                     ) : (
                       top.map(([p, count], i) => (
-                        <View key={i} style={st.patternRow}>
+                        <TouchableOpacity key={i} style={st.patternRow} onPress={() => setApprovingPattern({ category: cat, pattern: p, count })}>
                           <Text style={st.patternText}>• {p}{p.length >= 50 ? "..." : ""}</Text>
                           <Text style={st.patternCount}>{count}×</Text>
-                        </View>
+                        </TouchableOpacity>
                       ))
                     )}
                   </View>
@@ -261,6 +326,24 @@ export default function AdminScreen() {
             })()}
             {aiMessages.length === 0 && (
               <Text style={st.empty}>No AI insights yet. Will populate as conversations happen.</Text>
+            )}
+
+            {/* Approved Modifications */}
+            {approvedMods.length > 0 && (
+              <View style={st.card}>
+                <Text style={st.cardTitle}>Approved Prompt Refinements</Text>
+                <Text style={st.muted}>Active in Claude system prompts</Text>
+                {approvedMods.map((m) => (
+                  <View key={m.id} style={st.modRow}>
+                    <View style={st.cardRow}>
+                      <Text style={st.modCat}>{m.category.toUpperCase()}</Text>
+                      <Text style={st.f3Name}>{m.source_message_count}× source</Text>
+                    </View>
+                    <Text style={st.muted}>Pattern: {m.pattern_text}</Text>
+                    <Text style={st.modText}>{m.modification_text}</Text>
+                  </View>
+                ))}
+              </View>
             )}
           </>
         )}
@@ -332,6 +415,56 @@ export default function AdminScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Edit Passage Modal */}
+      <Modal visible={!!editingPassage} animationType="slide" transparent>
+        <View style={st.modalOverlay}>
+          <ScrollView contentContainerStyle={{ justifyContent: "flex-end", flexGrow: 1 }}>
+            <View style={st.modal}>
+              <Text style={st.modalTitle}>Edit Passage</Text>
+              <TextInput style={st.input} placeholder="Author *" placeholderTextColor="#5C5A54" value={epAuthor} onChangeText={setEpAuthor} />
+              <TextInput style={st.input} placeholder="Source" placeholderTextColor="#5C5A54" value={epSource} onChangeText={setEpSource} />
+              <TextInput style={[st.input, { minHeight: 100, textAlignVertical: "top" }]} placeholder="Passage *" placeholderTextColor="#5C5A54" value={epText} onChangeText={setEpText} multiline />
+              <TextInput style={st.input} placeholder="Tags (comma)" placeholderTextColor="#5C5A54" value={epTags} onChangeText={setEpTags} />
+              <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
+                <TouchableOpacity style={[st.cta, { flex: 1 }]} onPress={saveEditPassage}><Text style={st.ctaText}>Save</Text></TouchableOpacity>
+                <TouchableOpacity style={[st.ctaCancel, { flex: 1 }]} onPress={() => setEditingPassage(null)}><Text style={st.ctaCancelText}>Cancel</Text></TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Approve Pattern Modal */}
+      <Modal visible={!!approvingPattern} animationType="fade" transparent>
+        <View style={st.modalOverlay}>
+          <View style={st.modalSmall}>
+            <Text style={st.modalTitle}>Approve Pattern</Text>
+            <Text style={st.muted}>Category: {approvingPattern?.category}</Text>
+            <View style={{ marginTop: 8, marginBottom: 12 }}>
+              <Text style={st.label}>Pattern (×{approvingPattern?.count})</Text>
+              <Text style={st.patternText}>"{approvingPattern?.pattern}..."</Text>
+            </View>
+            <Text style={st.label}>Refinement to add to Claude prompt</Text>
+            <TextInput
+              style={[st.input, { minHeight: 80, textAlignVertical: "top" }]}
+              placeholder="When members show this pattern, also..."
+              placeholderTextColor="#5C5A54"
+              value={modText}
+              onChangeText={setModText}
+              multiline
+            />
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
+              <TouchableOpacity style={[st.cta, { flex: 1 }]} onPress={approvePattern}>
+                <Text style={st.ctaText}>Approve</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[st.ctaCancel, { flex: 1 }]} onPress={() => { setApprovingPattern(null); setModText(""); }}>
+                <Text style={st.ctaCancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -364,6 +497,9 @@ const st = StyleSheet.create({
   patternRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6, borderBottomWidth: 0.5, borderBottomColor: "#3D3C38" },
   patternText: { fontSize: 13, color: "#F0EDE6", flex: 1 },
   patternCount: { fontSize: 12, color: "#C0632A", fontWeight: "700", marginLeft: 8 },
+  modRow: { backgroundColor: "#1C1C1A", borderRadius: 8, padding: 12, marginTop: 8, borderWidth: 0.5, borderColor: "#3D3C38" },
+  modCat: { fontSize: 11, fontWeight: "700", color: "#C0632A", letterSpacing: 1.5 },
+  modText: { fontSize: 13, color: "#F0EDE6", marginTop: 6 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", padding: 24 },
   modalSmall: { backgroundColor: "#2E2D2A", borderRadius: 16, padding: 24 },
   modal: { backgroundColor: "#2E2D2A", borderRadius: 16, padding: 24 },

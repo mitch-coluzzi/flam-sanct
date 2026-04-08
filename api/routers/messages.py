@@ -339,10 +339,17 @@ Prompt from {(user.get('role') or 'user')}: {body.prompt}
 
 Respond with your insight, then KEY_POINTS and CATEGORY lines."""
 
+    # Append approved prompt modifications (admin learning loop)
+    mods = sb.table("prompt_modifications").select("category, modification_text").eq("approved", True).execute()
+    mod_text = ""
+    if mods.data:
+        mod_lines = [f"- [{m['category']}] {m['modification_text']}" for m in mods.data]
+        mod_text = "\n\nApproved refinements (apply when relevant):\n" + "\n".join(mod_lines)
+
     response = claude_client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=600,
-        system=SUMMON_SYSTEM,
+        system=SUMMON_SYSTEM + mod_text,
         messages=[{"role": "user", "content": user_prompt}],
     )
     raw = response.content[0].text

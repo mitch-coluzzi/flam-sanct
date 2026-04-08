@@ -10,6 +10,7 @@ const NAV = [
   { href: "/photos", label: "Photo Review", icon: "◈" },
   { href: "/recipes", label: "Recipes", icon: "▤" },
   { href: "/directives", label: "Directives", icon: "◆" },
+  { href: "/settings", label: "Settings", icon: "⚙" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

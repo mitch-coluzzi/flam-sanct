@@ -1,17 +1,49 @@
+import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../store/auth";
+import { supabase } from "../../lib/supabase";
 
 const SCREEN_W = Dimensions.get("window").width;
 
 function TodayHeader() {
   const profile = useAuthStore((s) => s.profile);
+  const [streak, setStreak] = useState(0);
   const today = new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   const name = profile?.display_name || profile?.full_name || "PAX";
+
+  useEffect(() => {
+    if (!profile?.id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("workouts")
+        .select("log_date")
+        .eq("user_id", profile.id)
+        .order("log_date", { ascending: false })
+        .limit(60);
+      const dates = new Set((data || []).map((w: any) => w.log_date));
+      let s = 0;
+      const check = new Date();
+      while (dates.has(check.toISOString().split("T")[0])) {
+        s++;
+        check.setDate(check.getDate() - 1);
+      }
+      setStreak(s);
+    })();
+  }, [profile?.id]);
+
   return (
     <View style={h.row}>
-      <Text style={h.date}>{today}</Text>
+      <View style={h.left}>
+        <Text style={h.date}>{today}</Text>
+        {streak > 0 && (
+          <View style={h.streakBadge}>
+            <Ionicons name="flame" size={12} color="#C0632A" />
+            <Text style={h.streakNum}>{streak}</Text>
+          </View>
+        )}
+      </View>
       <Text style={h.phase}>THE GRIND</Text>
       <Text style={h.name}>{name}</Text>
     </View>
@@ -19,7 +51,10 @@ function TodayHeader() {
 }
 const h = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: SCREEN_W - 32 },
+  left: { flexDirection: "row", alignItems: "center", gap: 6 },
   date: { fontSize: 15, fontWeight: "600", color: "#F0EDE6" },
+  streakBadge: { flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "#2E2D2A", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, borderWidth: 0.5, borderColor: "#C0632A" },
+  streakNum: { fontSize: 12, fontWeight: "800", color: "#C0632A" },
   phase: { fontSize: 14, fontWeight: "700", color: "#C0632A", letterSpacing: 2 },
   name: { fontSize: 16, fontWeight: "700", color: "#F0EDE6" },
 });
@@ -105,11 +140,20 @@ export default function MemberLayout() {
         }}
       />
       <Tabs.Screen
+        name="inbox"
+        options={{
+          title: "Inbox",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="sparkles" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="ai"
         options={{
           title: "Ask",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="sparkles" size={size} color={color} />
+            <Ionicons name="help-circle-outline" size={size} color={color} />
           ),
         }}
       />
