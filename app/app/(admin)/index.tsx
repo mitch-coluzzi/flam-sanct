@@ -35,7 +35,8 @@ interface ChefAssignment {
 
 export default function AdminScreen() {
   const profile = useAuthStore((s) => s.profile);
-  const [tab, setTab] = useState<"users" | "assignments" | "stoic" | "benchmarks">("users");
+  const [tab, setTab] = useState<"users" | "assignments" | "stoic" | "insights">("users");
+  const [aiMessages, setAiMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [assignments, setAssignments] = useState<ChefAssignment[]>([]);
@@ -77,6 +78,18 @@ export default function AdminScreen() {
     } else if (tab === "stoic") {
       const { data } = await supabase.from("stoic_passages").select("*").eq("is_active", true).order("author").limit(50);
       setPassages(data || []);
+    } else if (tab === "insights") {
+      // Last 30 days of AI messages with key points
+      const thirtyAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+      const { data } = await supabase
+        .from("messages")
+        .select("id, body, ai_key_points, ai_category, created_at")
+        .eq("message_type", "ai_digest")
+        .not("ai_key_points", "is", null)
+        .gte("created_at", thirtyAgo)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      setAiMessages(data || []);
     }
     setLoading(false);
   };
@@ -144,10 +157,10 @@ export default function AdminScreen() {
     <View style={st.container}>
       {/* Tab bar */}
       <View style={st.tabBar}>
-        {(["users", "assignments", "stoic", "benchmarks"] as const).map((t) => (
+        {(["users", "assignments", "stoic", "insights"] as const).map((t) => (
           <TouchableOpacity key={t} style={[st.tab, tab === t && st.tabActive]} onPress={() => setTab(t)}>
             <Text style={[st.tabText, tab === t && st.tabTextActive]}>
-              {t === "users" ? "Users" : t === "assignments" ? "Chef" : t === "stoic" ? "Stoic" : "Bench"}
+              {t === "users" ? "Users" : t === "assignments" ? "Chef" : t === "stoic" ? "Stoic" : "Insights"}
             </Text>
           </TouchableOpacity>
         ))}
@@ -203,9 +216,53 @@ export default function AdminScreen() {
           </>
         )}
 
-        {/* Benchmarks */}
-        {tab === "benchmarks" && (
-          <Text style={st.empty}>Benchmark management coming soon. Benchmarks are seeded and active.</Text>
+        {/* Insights — AI learning loop */}
+        {tab === "insights" && (
+          <>
+            <Text style={st.countText}>{aiMessages.length} AI insights · last 30 days</Text>
+            {(() => {
+              // Aggregate by category
+              const byCategory: Record<string, { count: number; points: string[] }> = {};
+              aiMessages.forEach((m) => {
+                const cat = m.ai_category || "uncategorized";
+                if (!byCategory[cat]) byCategory[cat] = { count: 0, points: [] };
+                byCategory[cat].count++;
+                if (m.ai_key_points) byCategory[cat].points.push(...m.ai_key_points);
+              });
+              return Object.entries(byCategory).map(([cat, data]) => {
+                // Find most common phrases
+                const phraseCount: Record<string, number> = {};
+                data.points.forEach((p) => {
+                  const key = p.substring(0, 50);
+                  phraseCount[key] = (phraseCount[key] || 0) + 1;
+                });
+                const top = Object.entries(phraseCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+                return (
+                  <View key={cat} style={st.card}>
+                    <View style={st.cardRow}>
+                      <Text style={st.userName}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
+                      <Text style={st.f3Name}>{data.count} insights</Text>
+                    </View>
+                    <Text style={st.label}>Recurring patterns</Text>
+                    {top.length === 0 ? (
+                      <Text style={st.muted}>No patterns yet.</Text>
+                    ) : (
+                      top.map(([p, count], i) => (
+                        <View key={i} style={st.patternRow}>
+                          <Text style={st.patternText}>• {p}{p.length >= 50 ? "..." : ""}</Text>
+                          <Text style={st.patternCount}>{count}×</Text>
+                        </View>
+                      ))
+                    )}
+                  </View>
+                );
+              });
+            })()}
+            {aiMessages.length === 0 && (
+              <Text style={st.empty}>No AI insights yet. Will populate as conversations happen.</Text>
+            )}
+          </>
         )}
       </ScrollView>
 
@@ -303,6 +360,10 @@ const st = StyleSheet.create({
   tag: { backgroundColor: "#1C1C1A", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
   tagText: { fontSize: 10, color: "#9C9A94" },
   empty: { color: "#5C5A54", fontSize: 14, fontStyle: "italic", textAlign: "center", marginTop: 40 },
+  muted: { color: "#5C5A54", fontSize: 13, fontStyle: "italic" },
+  patternRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6, borderBottomWidth: 0.5, borderBottomColor: "#3D3C38" },
+  patternText: { fontSize: 13, color: "#F0EDE6", flex: 1 },
+  patternCount: { fontSize: 12, color: "#C0632A", fontWeight: "700", marginLeft: 8 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", padding: 24 },
   modalSmall: { backgroundColor: "#2E2D2A", borderRadius: 16, padding: 24 },
   modal: { backgroundColor: "#2E2D2A", borderRadius: 16, padding: 24 },

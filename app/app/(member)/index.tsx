@@ -64,7 +64,7 @@ export default function TodayScreen() {
 
   // Morning fields
   const [sleepHours, setSleepHours] = useState("");
-  const [sleepQuality, setSleepQuality] = useState(0);
+  const [sleepQuality, setSleepQuality] = useState<number | null>(null);
   const [weight, setWeight] = useState("");
   const [mood, setMood] = useState<number | null>(null);
   const [moodNote, setMoodNote] = useState("");
@@ -210,7 +210,7 @@ export default function TodayScreen() {
     if (!userId || !log) return;
     const u: Record<string, any> = { updated_at: new Date().toISOString() };
     if (sleepHours) u.sleep_hours = parseFloat(sleepHours);
-    if (sleepQuality) u.sleep_quality = sleepQuality;
+    if (sleepQuality !== null) u.sleep_quality = sleepQuality;
     if (mood !== null) u.mood = mood;
     if (moodNote) u.mood_note = moodNote;
     if (amReflection.trim()) u.am_reflection = amReflection.trim();
@@ -241,7 +241,7 @@ export default function TodayScreen() {
     // (sleep, weight, AM reflection — NOT AM mood, can't accurately reconstruct)
     if (morningCatchUp) {
       if (sleepHours) u.sleep_hours = parseFloat(sleepHours);
-      if (sleepQuality) u.sleep_quality = sleepQuality;
+      if (sleepQuality !== null) u.sleep_quality = sleepQuality;
       if (amReflection.trim()) u.am_reflection = amReflection.trim();
       if (weight) {
         u.weight_lbs = parseFloat(weight);

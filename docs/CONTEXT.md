@@ -217,10 +217,10 @@ Updated at the end of each Claude Code session.
 
 ## 8. Current Build State
 
-**Platform Version:** 1.2.0
-**Last Claude Code Session:** Chef web + AI conversation (2026-04-07)
-**Current Step:** Chef Next.js interface live, AI conversation thread shipping. Web service needs Railway deploy.
-**Next Action:** Deploy web/ to Railway as second service. Admin learning aggregation screen. Brand assets. EAS production build.
+**Platform Version:** 1.3.0
+**Last Claude Code Session:** Quick wins batch (2026-04-07)
+**Current Step:** Sleep bug fixed, member parity (Progress chart + body photo timeline + Goals), Admin Insights tab live.
+**Next Action:** Deploy web/ to Railway with chef. subdomain. Wire prompt_modifications approval flow. Brand assets.
 
 ---
 
@@ -261,6 +261,9 @@ Increment on each Claude Code session that produces shippable code.
 | 1.0.9 | 2026-04-06 | Awaiting review tappable to edit details (food name, calories, macros, narrative). |
 | 1.1.0 | 2026-04-06 | Day Complete shows full reflections + life grades + life event. Custom trackers single row +/-. Post-completion journal entry. |
 | 1.2.0 | 2026-04-07 | Chef Next.js web interface (web/), USDA recipe builder, member detail w/ weight trend, AI conversation thread, @ai summon, real-time both sides, auto-summon on food anomalies, photo library upload. |
+| 1.3.0 | 2026-04-07 | Sleep null-safe. Member Progress: sparkline + photo timeline + Goals. Admin Insights aggregation tab. AM/PM 4 PM cutoff with evening-first catch-up. |
+| 1.2.1 | 2026-04-07 | AM/PM time-of-day cutoff (4 PM), evening-first ordering with catch-up at bottom (drops AM mood). |
+| 1.3.0 | 2026-04-07 | Sleep quality null-safe save. Member Progress: weight sparkline + body photo timeline + Goals UI (full CRUD). Admin Insights tab — aggregates AI key points by category, shows recurring patterns for prompt refinement. New table: prompt_modifications. |
 
 **Versioning convention:**
 `0.X.0` — major spec or architecture additions during pre-launch
