@@ -235,11 +235,20 @@ export default function TodayScreen() {
     loadToday();
   };
 
-  const captureBodyPhoto = async () => {
+  const captureBodyPhoto = async (source: "camera" | "library" = "camera") => {
     if (!userId) return;
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) { Alert.alert("Camera permission required"); return; }
-    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.8, base64: true });
+
+    let result;
+    if (source === "camera") {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) { Alert.alert("Camera permission required"); return; }
+      result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.8, base64: true });
+    } else {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) { Alert.alert("Photo library permission required"); return; }
+      result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8, base64: true });
+    }
+
     if (result.canceled || !result.assets?.[0]) return;
     setBodyPhotoCapturing(true);
     const asset = result.assets[0];
@@ -276,11 +285,20 @@ export default function TodayScreen() {
     loadToday();
   };
 
-  const captureFood = async (mealType: string) => {
+  const captureFood = async (mealType: string, source: "camera" | "library" = "camera") => {
     if (!userId) return;
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) { Alert.alert("Camera permission required"); return; }
-    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.7, base64: true });
+
+    let result;
+    if (source === "camera") {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) { Alert.alert("Camera permission required"); return; }
+      result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.7, base64: true });
+    } else {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) { Alert.alert("Photo library permission required"); return; }
+      result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7, base64: true });
+    }
+
     if (result.canceled || !result.assets?.[0]) return;
     setPhotoCapturing(true);
     const asset = result.assets[0];
@@ -291,7 +309,6 @@ export default function TodayScreen() {
     }
     const photoUrl = `${supabase.supabaseUrl}/storage/v1/object/food-photos/${path}`;
     setPhotoCapturing(false);
-    // Store pending photo data, show narrative modal
     setPendingPhotoData({ mealType, photoUrl });
     setShowPhotoNarrative(true);
   };
@@ -448,11 +465,22 @@ export default function TodayScreen() {
           <View style={{ flexDirection: "row", gap: 12 }}>
             <TouchableOpacity onPress={() => setShowManualFood(true)}><Ionicons name="create-outline" size={20} color="#C0632A" /></TouchableOpacity>
             <TouchableOpacity onPress={() => setShowFoodResponse(true)}><Ionicons name="body-outline" size={20} color="#C0632A" /></TouchableOpacity>
-            <TouchableOpacity onPress={() => Alert.alert("Snap Food Photo", "Which meal?", [
-              { text: "Breakfast", onPress: () => captureFood("breakfast") }, { text: "Lunch", onPress: () => captureFood("lunch") },
-              { text: "Dinner", onPress: () => captureFood("dinner") }, { text: "Snack", onPress: () => captureFood("snack") },
-              { text: "Cancel", style: "cancel" },
-            ])} disabled={photoCapturing}>
+            <TouchableOpacity onPress={() => {
+              const pickMeal = (source: "camera" | "library") => {
+                Alert.alert("Which meal?", "", [
+                  { text: "Breakfast", onPress: () => captureFood("breakfast", source) },
+                  { text: "Lunch", onPress: () => captureFood("lunch", source) },
+                  { text: "Dinner", onPress: () => captureFood("dinner", source) },
+                  { text: "Snack", onPress: () => captureFood("snack", source) },
+                  { text: "Cancel", style: "cancel" },
+                ]);
+              };
+              Alert.alert("Add Food Photo", "Take a new photo or choose from your library?", [
+                { text: "Take Photo", onPress: () => pickMeal("camera") },
+                { text: "Choose from Library", onPress: () => pickMeal("library") },
+                { text: "Cancel", style: "cancel" },
+              ]);
+            }} disabled={photoCapturing}>
               {photoCapturing ? <ActivityIndicator size="small" color="#C0632A" /> : <Ionicons name="camera" size={22} color="#C0632A" />}
             </TouchableOpacity>
           </View>
@@ -512,7 +540,11 @@ export default function TodayScreen() {
               <View style={st.weightRow}>
                 <TextInput style={[st.input, { flex: 1, marginBottom: 0 }]} placeholder={log?.weight_lbs?.toString() || "0"} placeholderTextColor="#5C5A54" value={weight} onChangeText={setWeight} keyboardType="numeric" />
                 {bodyPhotoDue && (
-                  <TouchableOpacity style={st.bodyPhotoBtn} onPress={captureBodyPhoto} disabled={bodyPhotoCapturing}>
+                  <TouchableOpacity style={st.bodyPhotoBtn} onPress={() => Alert.alert("Body Photo", "Take new or choose from library?", [
+                    { text: "Take Photo", onPress: () => captureBodyPhoto("camera") },
+                    { text: "Choose from Library", onPress: () => captureBodyPhoto("library") },
+                    { text: "Cancel", style: "cancel" },
+                  ])} disabled={bodyPhotoCapturing}>
                     {bodyPhotoCapturing ? <ActivityIndicator size="small" color="#C0632A" /> : <Ionicons name="camera-outline" size={22} color="#C0632A" />}
                   </TouchableOpacity>
                 )}
