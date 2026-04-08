@@ -237,12 +237,11 @@ export default function TodayScreen() {
     if (grades.relational !== null) u.grade_relational = grades.relational;
     if (grades.financial !== null) u.grade_financial = grades.financial;
 
-    // Catch-up: if morning was missed, save morning fields too
+    // Catch-up: if morning was missed, save morning-relevant fields
+    // (sleep, weight, AM reflection — NOT AM mood, can't accurately reconstruct)
     if (morningCatchUp) {
       if (sleepHours) u.sleep_hours = parseFloat(sleepHours);
       if (sleepQuality) u.sleep_quality = sleepQuality;
-      if (mood !== null) u.mood = mood;
-      if (moodNote) u.mood_note = moodNote;
       if (amReflection.trim()) u.am_reflection = amReflection.trim();
       if (weight) {
         u.weight_lbs = parseFloat(weight);
@@ -610,55 +609,9 @@ export default function TodayScreen() {
         <View style={st.card}>
           <Text style={st.cardTitle}>{morningCatchUp ? "Day Check-In" : "Evening Check-In"}</Text>
 
-          {/* Morning catch-up — only when missed */}
-          {morningCatchUp && (
-            <View style={st.catchUpSection}>
-              <Text style={st.catchUpLabel}>CATCH UP — THIS MORNING</Text>
-
-              <Text style={st.label}>Sleep</Text>
-              <View style={st.sleepRow}>
-                <TextInput style={[st.input, { flex: 1, marginBottom: 0 }]} placeholder="7.5" placeholderTextColor="#5C5A54" value={sleepHours} onChangeText={setSleepHours} keyboardType="numeric" />
-                <Text style={st.unit}>hrs</Text>
-                <View style={st.sqRow}>
-                  {([-2, -1, 0, 1, 2] as const).map((v) => (
-                    <TouchableOpacity key={v} style={[st.sqChip, sleepQuality === v && st.sqActive]} onPress={() => setSleepQuality(v)}>
-                      <Text style={[st.sqText, sleepQuality === v && st.onText]}>{v > 0 ? `+${v}` : v}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {weightDue && (
-                <>
-                  <Text style={st.label}>Weight ({profile?.weight_unit || "lbs"}) <Text style={st.hint}>· weekly</Text></Text>
-                  <TextInput style={st.input} placeholder={log?.weight_lbs?.toString() || "0"} placeholderTextColor="#5C5A54" value={weight} onChangeText={setWeight} keyboardType="numeric" />
-                </>
-              )}
-
-              <Text style={st.label}>Morning mood</Text>
-              {mood !== null && <Text style={[st.moodDisplay, { color: moodColor(mood) }]}>{moodLabel(mood)}</Text>}
-              <View style={st.moodRow}>
-                {MOOD_SCALE.map((m) => (
-                  <TouchableOpacity key={m.value} style={[st.moodChip, mood === m.value && { backgroundColor: m.color, borderColor: m.color }]} onPress={() => setMood(m.value)}>
-                    <Text style={[st.moodChipText, mood === m.value && st.onText]}>{m.value > 0 ? `+${m.value}` : m.value}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <TextInput style={[st.input, { marginTop: 12, minHeight: 60, textAlignVertical: "top" }]} placeholder="Morning reflection (optional)" placeholderTextColor="#5C5A54" value={amReflection} onChangeText={setAmReflection} multiline />
-            </View>
-          )}
-
-          {!morningCatchUp && passage && (
+          {passage && (
             <View style={st.stoicSection}>
               <Text style={st.passage}>"{passage.passage}"</Text>
-              <Text style={st.attribution}>— {passage.author}{passage.source ? `, ${passage.source}` : ""}</Text>
-            </View>
-          )}
-          {morningCatchUp && passage && (
-            <View style={[st.stoicSection, { marginTop: 20 }]}>
-              <Text style={st.catchUpLabel}>EVENING — REFLECTION</Text>
-              <Text style={[st.passage, { marginTop: 8 }]}>"{passage.passage}"</Text>
               <Text style={st.attribution}>— {passage.author}{passage.source ? `, ${passage.source}` : ""}</Text>
             </View>
           )}
@@ -747,7 +700,48 @@ export default function TodayScreen() {
             </View>
           ))}
 
-          <TouchableOpacity style={st.cta} onPress={submitEvening}><Text style={st.ctaText}>Save Evening Check-In</Text></TouchableOpacity>
+          {/* Morning catch-up at the bottom — only when missed */}
+          {morningCatchUp && (
+            <View style={st.catchUpSection}>
+              <Text style={st.catchUpLabel}>CATCH UP — THIS MORNING</Text>
+
+              <Text style={st.label}>Sleep last night</Text>
+              <View style={st.sleepRow}>
+                <TextInput style={[st.input, { flex: 1, marginBottom: 0 }]} placeholder="7.5" placeholderTextColor="#5C5A54" value={sleepHours} onChangeText={setSleepHours} keyboardType="numeric" />
+                <Text style={st.unit}>hrs</Text>
+                <View style={st.sqRow}>
+                  {([-2, -1, 0, 1, 2] as const).map((v) => (
+                    <TouchableOpacity key={v} style={[st.sqChip, sleepQuality === v && st.sqActive]} onPress={() => setSleepQuality(v)}>
+                      <Text style={[st.sqText, sleepQuality === v && st.onText]}>{v > 0 ? `+${v}` : v}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {weightDue && (
+                <>
+                  <Text style={st.label}>Weight ({profile?.weight_unit || "lbs"}) <Text style={st.hint}>· weekly</Text></Text>
+                  <View style={st.weightRow}>
+                    <TextInput style={[st.input, { flex: 1, marginBottom: 0 }]} placeholder={log?.weight_lbs?.toString() || "0"} placeholderTextColor="#5C5A54" value={weight} onChangeText={setWeight} keyboardType="numeric" />
+                    {bodyPhotoDue && (
+                      <TouchableOpacity style={st.bodyPhotoBtn} onPress={() => Alert.alert("Body Photo", "Take new or choose from library?", [
+                        { text: "Take Photo", onPress: () => captureBodyPhoto("camera") },
+                        { text: "Choose from Library", onPress: () => captureBodyPhoto("library") },
+                        { text: "Cancel", style: "cancel" },
+                      ])} disabled={bodyPhotoCapturing}>
+                        {bodyPhotoCapturing ? <ActivityIndicator size="small" color="#C0632A" /> : <Ionicons name="camera-outline" size={22} color="#C0632A" />}
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  {bodyPhotoMonthly && <Text style={st.monthlyReminder}>📸 Monthly body photo due — tap the camera to capture.</Text>}
+                </>
+              )}
+
+              <TextInput style={[st.input, { marginTop: 12, minHeight: 60, textAlignVertical: "top" }]} placeholder="Anything from this morning worth noting? (optional)" placeholderTextColor="#5C5A54" value={amReflection} onChangeText={setAmReflection} multiline />
+            </View>
+          )}
+
+          <TouchableOpacity style={st.cta} onPress={submitEvening}><Text style={st.ctaText}>Save Check-In</Text></TouchableOpacity>
         </View>
       )}
 
