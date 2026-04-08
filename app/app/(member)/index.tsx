@@ -193,9 +193,15 @@ export default function TodayScreen() {
 
   useEffect(() => { loadToday(); }, [loadToday]);
 
-  // Determine what to show
-  const showMorningCheckin = !morningDone;
-  const showEveningCheckin = morningDone && !eveningDone;
+  // Determine what to show based on time of day + completion state
+  // Evening cutoff: 4:00 PM (16:00)
+  const isEvening = HOUR >= 16;
+  const showMorningCheckin = !morningDone && !isEvening;
+  // After 4 PM, show evening card whether morning is done or not
+  // (combined catch-up + evening if morning was missed)
+  const showEveningCheckin = !eveningDone && (isEvening || morningDone);
+  // Morning catch-up: shown inside evening card when morning was missed and it's evening
+  const morningCatchUp = !morningDone && isEvening;
   const allDone = morningDone && eveningDone;
 
   // ── Handlers ──
@@ -230,8 +236,22 @@ export default function TodayScreen() {
     if (grades.spiritual !== null) u.grade_spiritual = grades.spiritual;
     if (grades.relational !== null) u.grade_relational = grades.relational;
     if (grades.financial !== null) u.grade_financial = grades.financial;
+
+    // Catch-up: if morning was missed, save morning fields too
+    if (morningCatchUp) {
+      if (sleepHours) u.sleep_hours = parseFloat(sleepHours);
+      if (sleepQuality) u.sleep_quality = sleepQuality;
+      if (mood !== null) u.mood = mood;
+      if (moodNote) u.mood_note = moodNote;
+      if (amReflection.trim()) u.am_reflection = amReflection.trim();
+      if (weight) {
+        u.weight_lbs = parseFloat(weight);
+        await supabase.from("users").update({ last_weigh_date: TODAY }).eq("id", userId);
+      }
+    }
+
     await supabase.from("daily_logs").update(u).eq("id", log.id);
-    Alert.alert("Evening check-in saved.");
+    Alert.alert("Check-in saved.");
     loadToday();
   };
 
@@ -588,11 +608,57 @@ export default function TodayScreen() {
       {/* ── EVENING CHECK-IN ── */}
       {showEveningCheckin && (
         <View style={st.card}>
-          <Text style={st.cardTitle}>Evening Check-In</Text>
+          <Text style={st.cardTitle}>{morningCatchUp ? "Day Check-In" : "Evening Check-In"}</Text>
 
-          {passage && (
+          {/* Morning catch-up — only when missed */}
+          {morningCatchUp && (
+            <View style={st.catchUpSection}>
+              <Text style={st.catchUpLabel}>CATCH UP — THIS MORNING</Text>
+
+              <Text style={st.label}>Sleep</Text>
+              <View style={st.sleepRow}>
+                <TextInput style={[st.input, { flex: 1, marginBottom: 0 }]} placeholder="7.5" placeholderTextColor="#5C5A54" value={sleepHours} onChangeText={setSleepHours} keyboardType="numeric" />
+                <Text style={st.unit}>hrs</Text>
+                <View style={st.sqRow}>
+                  {([-2, -1, 0, 1, 2] as const).map((v) => (
+                    <TouchableOpacity key={v} style={[st.sqChip, sleepQuality === v && st.sqActive]} onPress={() => setSleepQuality(v)}>
+                      <Text style={[st.sqText, sleepQuality === v && st.onText]}>{v > 0 ? `+${v}` : v}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {weightDue && (
+                <>
+                  <Text style={st.label}>Weight ({profile?.weight_unit || "lbs"}) <Text style={st.hint}>· weekly</Text></Text>
+                  <TextInput style={st.input} placeholder={log?.weight_lbs?.toString() || "0"} placeholderTextColor="#5C5A54" value={weight} onChangeText={setWeight} keyboardType="numeric" />
+                </>
+              )}
+
+              <Text style={st.label}>Morning mood</Text>
+              {mood !== null && <Text style={[st.moodDisplay, { color: moodColor(mood) }]}>{moodLabel(mood)}</Text>}
+              <View style={st.moodRow}>
+                {MOOD_SCALE.map((m) => (
+                  <TouchableOpacity key={m.value} style={[st.moodChip, mood === m.value && { backgroundColor: m.color, borderColor: m.color }]} onPress={() => setMood(m.value)}>
+                    <Text style={[st.moodChipText, mood === m.value && st.onText]}>{m.value > 0 ? `+${m.value}` : m.value}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TextInput style={[st.input, { marginTop: 12, minHeight: 60, textAlignVertical: "top" }]} placeholder="Morning reflection (optional)" placeholderTextColor="#5C5A54" value={amReflection} onChangeText={setAmReflection} multiline />
+            </View>
+          )}
+
+          {!morningCatchUp && passage && (
             <View style={st.stoicSection}>
               <Text style={st.passage}>"{passage.passage}"</Text>
+              <Text style={st.attribution}>— {passage.author}{passage.source ? `, ${passage.source}` : ""}</Text>
+            </View>
+          )}
+          {morningCatchUp && passage && (
+            <View style={[st.stoicSection, { marginTop: 20 }]}>
+              <Text style={st.catchUpLabel}>EVENING — REFLECTION</Text>
+              <Text style={[st.passage, { marginTop: 8 }]}>"{passage.passage}"</Text>
               <Text style={st.attribution}>— {passage.author}{passage.source ? `, ${passage.source}` : ""}</Text>
             </View>
           )}
@@ -921,6 +987,8 @@ const st = StyleSheet.create({
   tBtnText: { fontSize: 13, fontWeight: "600", color: "#9C9A94" },
   tYes: { backgroundColor: "#C0632A", borderColor: "#C0632A" },
   tNo: { backgroundColor: "#6B4C5A", borderColor: "#6B4C5A" },
+  catchUpSection: { marginBottom: 8, paddingBottom: 16, borderBottomWidth: 0.5, borderBottomColor: "#5C5A54" },
+  catchUpLabel: { fontSize: 11, fontWeight: "700", color: "#C0632A", letterSpacing: 1.5, marginBottom: 8 },
   stoicSection: { marginTop: 12, paddingTop: 12, borderTopWidth: 0.5, borderTopColor: "#3D3C38" },
   lockedReflection: { backgroundColor: "#1C1C1A", borderRadius: 8, padding: 12, marginTop: 12, borderWidth: 0.5, borderColor: "#3D3C38" },
   lockedLabel: { fontSize: 10, fontWeight: "700", color: "#5C5A54", letterSpacing: 1.5, marginBottom: 6 },
