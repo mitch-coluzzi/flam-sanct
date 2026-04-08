@@ -25,20 +25,25 @@ export default function MembersPage() {
         return;
       }
 
-      const { data, error } = await supabase
+      const { data: assignments } = await supabase
         .from("chef_assignments")
-        .select(
-          "member:member_id (id, display_name, full_name, email, f3_name)"
-        )
+        .select("member_id")
         .eq("chef_id", chefId)
         .eq("active", true);
 
-      if (!error && data) {
-        const list: Member[] = data
-          .map((row: any) => row.member)
-          .filter((m: any) => m);
-        setMembers(list);
+      const memberIds = (assignments || []).map((a: any) => a.member_id);
+      if (memberIds.length === 0) {
+        setMembers([]);
+        setLoading(false);
+        return;
       }
+
+      const { data: users } = await supabase
+        .from("users")
+        .select("id, display_name, full_name, email, f3_name")
+        .in("id", memberIds);
+
+      setMembers((users as Member[]) || []);
       setLoading(false);
     })();
   }, []);
