@@ -18,6 +18,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   recovery: "#7A6A4A",
   training: "#9A7A3A",
   wellbeing: "#7A5C5C",
+  weekly: "#5A7A6A",
 };
 
 export default function InboxScreen() {

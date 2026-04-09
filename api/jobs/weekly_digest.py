@@ -38,6 +38,31 @@ async def run_weekly_digest_job():
             "ai_digest_generated_at": datetime.now(timezone.utc).isoformat(),
         }).eq("user_id", user_id).eq("log_date", today).execute()
 
+        # Post to member's chef conversation so it surfaces in Inbox
+        assignment = (
+            sb.table("chef_assignments")
+            .select("chef_id")
+            .eq("member_id", user_id)
+            .eq("active", True)
+            .limit(1)
+            .execute()
+        )
+        if assignment.data:
+            chef_id = assignment.data[0]["chef_id"]
+            my_parts = sb.table("conversation_participants").select("conversation_id").eq("user_id", user_id).execute()
+            my_ids = [p["conversation_id"] for p in (my_parts.data or [])]
+            if my_ids:
+                chef_parts = sb.table("conversation_participants").select("conversation_id").eq("user_id", chef_id).in_("conversation_id", my_ids).execute()
+                if chef_parts.data:
+                    cid = chef_parts.data[0]["conversation_id"]
+                    sb.table("messages").insert({
+                        "conversation_id": cid,
+                        "sender_id": user_id,
+                        "body": digest_text,
+                        "message_type": "ai_digest",
+                        "ai_category": "weekly",
+                    }).execute()
+
         # Push notification
         await send_push_notification(
             sb, user_id,

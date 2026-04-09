@@ -45,7 +45,10 @@ async def create_workout(
     sb = request.app.state.supabase
     now = datetime.now(timezone.utc).isoformat()
 
-    # Get member's latest weight for calorie calc
+    # Get member's latest weight and correction factor
+    user_result = sb.table("users").select("calorie_correction_factor").eq("id", user["user_id"]).single().execute()
+    correction = (user_result.data or {}).get("calorie_correction_factor") or 1.0
+
     weight_result = (
         sb.table("daily_logs")
         .select("weight_lbs")
@@ -62,6 +65,7 @@ async def create_workout(
         duration_minutes=body.duration_minutes,
         rpe=body.rpe,
         weight_lbs=float(weight_lbs),
+        correction_factor=float(correction),
     )
 
     row = body.model_dump()
@@ -144,7 +148,9 @@ async def update_workout(
             .execute()
         )
         weight_lbs = weight_result.data[0]["weight_lbs"] if weight_result.data else 185.0
-        updates["estimated_calories_burned"] = estimate_calories(wt, dur, rpe, float(weight_lbs))
+        user_result = sb.table("users").select("calorie_correction_factor").eq("id", user["user_id"]).single().execute()
+        correction = (user_result.data or {}).get("calorie_correction_factor") or 1.0
+        updates["estimated_calories_burned"] = estimate_calories(wt, dur, rpe, float(weight_lbs), float(correction))
 
     updates["updated_at"] = now
     result = sb.table("workouts").update(updates).eq("id", workout_id).execute()

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../../store/auth";
@@ -24,6 +26,14 @@ interface Post {
   user_reacted?: boolean;
 }
 
+interface Reply {
+  id: string;
+  body: string;
+  created_at: string;
+  user_id: string;
+  author: { display_name: string | null; full_name: string } | null;
+}
+
 export default function CommunityScreen() {
   const profile = useAuthStore((s) => s.profile);
   const userId = profile?.id;
@@ -32,6 +42,13 @@ export default function CommunityScreen() {
   const [showCompose, setShowCompose] = useState(false);
   const [newBody, setNewBody] = useState("");
   const [posting, setPosting] = useState(false);
+
+  // Reply state
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
+  const [replies, setReplies] = useState<Reply[]>([]);
+  const [loadingReplies, setLoadingReplies] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
 
   useEffect(() => { loadFeed(); }, [userId]);
 
@@ -46,7 +63,6 @@ export default function CommunityScreen() {
       .order("created_at", { ascending: false })
       .limit(30);
 
-    // Check user reactions
     const postIds = (data || []).map((p) => p.id);
     const { data: reactions } = await supabase
       .from("community_reactions")
@@ -81,6 +97,46 @@ export default function CommunityScreen() {
     loadFeed();
   };
 
+  const toggleReplies = useCallback(async (postId: string) => {
+    if (expandedPostId === postId) {
+      setExpandedPostId(null);
+      setReplies([]);
+      setReplyText("");
+      return;
+    }
+    setExpandedPostId(postId);
+    setLoadingReplies(true);
+    const { data } = await supabase
+      .from("community_replies")
+      .select("id, body, created_at, user_id, author:users!community_replies_user_id_fkey(display_name, full_name)")
+      .eq("post_id", postId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true });
+    setReplies(data || []);
+    setLoadingReplies(false);
+  }, [expandedPostId]);
+
+  const sendReply = async () => {
+    if (!userId || !expandedPostId || !replyText.trim()) return;
+    setSendingReply(true);
+    await supabase.from("community_replies").insert({
+      post_id: expandedPostId,
+      user_id: userId,
+      body: replyText.trim(),
+    });
+    // Increment reply_count on post
+    const post = posts.find((p) => p.id === expandedPostId);
+    if (post) {
+      await supabase.from("community_posts").update({ reply_count: post.reply_count + 1 }).eq("id", expandedPostId);
+    }
+    setReplyText("");
+    setSendingReply(false);
+    // Reload replies and feed
+    toggleReplies(expandedPostId);
+    setTimeout(() => toggleReplies(expandedPostId), 100);
+    loadFeed();
+  };
+
   const timeAgo = (ts: string) => {
     const diff = Date.now() - new Date(ts).getTime();
     const mins = Math.floor(diff / 60000);
@@ -90,25 +146,73 @@ export default function CommunityScreen() {
     return `${Math.floor(hrs / 24)}d`;
   };
 
-  const renderPost = ({ item }: { item: Post }) => (
-    <View style={st.postCard}>
-      <View style={st.postHeader}>
-        <Text style={st.authorName}>{item.author?.display_name || item.author?.full_name || "PAX"}</Text>
-        <Text style={st.timeAgo}>{timeAgo(item.created_at)}</Text>
-      </View>
-      {item.body && <Text style={st.postBody}>{item.body}</Text>}
-      <View style={st.postActions}>
-        <TouchableOpacity style={st.actionBtn} onPress={() => toggleFlam(item)}>
-          <Ionicons name="flame" size={18} color={item.user_reacted ? "#C0632A" : "#5C5A54"} />
-          <Text style={[st.actionText, item.user_reacted && { color: "#C0632A" }]}>{item.reaction_count}</Text>
-        </TouchableOpacity>
-        <View style={st.actionBtn}>
-          <Ionicons name="chatbubble-outline" size={16} color="#5C5A54" />
-          <Text style={st.actionText}>{item.reply_count}</Text>
+  const renderPost = ({ item }: { item: Post }) => {
+    const isExpanded = expandedPostId === item.id;
+    return (
+      <View style={st.postCard}>
+        <View style={st.postHeader}>
+          <Text style={st.authorName}>{item.author?.display_name || item.author?.full_name || "PAX"}</Text>
+          <Text style={st.timeAgo}>{timeAgo(item.created_at)}</Text>
         </View>
+        {item.body && <Text style={st.postBody}>{item.body}</Text>}
+        <View style={st.postActions}>
+          <TouchableOpacity style={st.actionBtn} onPress={() => toggleFlam(item)}>
+            <Ionicons name="flame" size={18} color={item.user_reacted ? "#C0632A" : "#5C5A54"} />
+            <Text style={[st.actionText, item.user_reacted && { color: "#C0632A" }]}>{item.reaction_count}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={st.actionBtn} onPress={() => toggleReplies(item.id)}>
+            <Ionicons name="chatbubble-outline" size={16} color={isExpanded ? "#C0632A" : "#5C5A54"} />
+            <Text style={[st.actionText, isExpanded && { color: "#C0632A" }]}>{item.reply_count}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Reply thread */}
+        {isExpanded && (
+          <View style={st.replySection}>
+            {loadingReplies ? (
+              <ActivityIndicator size="small" color="#C0632A" style={{ marginVertical: 12 }} />
+            ) : (
+              <>
+                {replies.length === 0 && (
+                  <Text style={st.noReplies}>No replies yet.</Text>
+                )}
+                {replies.map((r) => (
+                  <View key={r.id} style={st.replyCard}>
+                    <View style={st.replyHeader}>
+                      <Text style={st.replyAuthor}>{r.author?.display_name || r.author?.full_name || "PAX"}</Text>
+                      <Text style={st.replyTime}>{timeAgo(r.created_at)}</Text>
+                    </View>
+                    <Text style={st.replyBody}>{r.body}</Text>
+                  </View>
+                ))}
+                <View style={st.replyInputRow}>
+                  <TextInput
+                    style={st.replyInput}
+                    placeholder="Reply..."
+                    placeholderTextColor="#5C5A54"
+                    value={replyText}
+                    onChangeText={setReplyText}
+                    maxLength={300}
+                  />
+                  <TouchableOpacity
+                    style={[st.replySend, (!replyText.trim() || sendingReply) && { opacity: 0.4 }]}
+                    onPress={sendReply}
+                    disabled={!replyText.trim() || sendingReply}
+                  >
+                    {sendingReply ? (
+                      <ActivityIndicator size="small" color="#1C1C1A" />
+                    ) : (
+                      <Ionicons name="send" size={16} color="#1C1C1A" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        )}
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={st.container}>
@@ -180,4 +284,15 @@ const st = StyleSheet.create({
   charCount: { fontSize: 12, color: "#5C5A54", textAlign: "right", marginTop: 4 },
   cta: { backgroundColor: "#C0632A", borderRadius: 8, padding: 14, alignItems: "center", marginTop: 12 },
   ctaText: { color: "#1C1C1A", fontSize: 15, fontWeight: "700" },
+  // Reply styles
+  replySection: { marginTop: 12, paddingTop: 12, borderTopWidth: 0.5, borderTopColor: "#3D3C38" },
+  noReplies: { color: "#5C5A54", fontSize: 13, fontStyle: "italic", marginBottom: 10 },
+  replyCard: { backgroundColor: "#252422", borderRadius: 8, padding: 10, marginBottom: 8 },
+  replyHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
+  replyAuthor: { fontSize: 12, fontWeight: "700", color: "#C0632A" },
+  replyTime: { fontSize: 11, color: "#5C5A54" },
+  replyBody: { fontSize: 14, color: "#F0EDE6", lineHeight: 20 },
+  replyInputRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
+  replyInput: { flex: 1, backgroundColor: "#1C1C1A", color: "#F0EDE6", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, borderWidth: 0.5, borderColor: "#5C5A54" },
+  replySend: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#C0632A", justifyContent: "center", alignItems: "center" },
 });

@@ -1,7 +1,7 @@
 # FlamSanct — Claude Code Context
-**Version:** 1.0
-**Last Updated:** 2026-04-05
-**Platform Version:** 0.2.0
+**Version:** 1.1
+**Last Updated:** 2026-04-09
+**Platform Version:** 1.5.0
 **Purpose:** Claude Code build session context. Load at the start of every Claude Code session. Do not use for design sessions — use CLAUDE_CHAT_CONTEXT.md instead.
 
 ---
@@ -212,14 +212,15 @@ Updated at the end of each Claude Code session.
 | Chef + AI | 2026-04-06 | 1.0.8-1.0.9 | Chef view switching, AI nutrition estimates on pending photos via Vision endpoint, tappable awaiting-review entries with full edit modal. |
 | Day Complete | 2026-04-06 | 1.1.0 | Custom trackers single row +/- icons, life events, Day Complete shows full reflections, life grades, life event, post-completion journal entry. |
 | Chef Web | 2026-04-07 | 1.2.0 | Next.js + Tailwind chef interface (web/), USDA recipe builder w/ ingredient search and live macros, member detail w/ weight trend + sparkline, AI conversation thread (chef ↔ member ↔ AI), @ai summon, real-time Supabase subscriptions both sides, auto-summon on food anomalies, photo library upload (camera or gallery). |
+| Gap Audit | 2026-04-09 | 1.5.0 | Full API↔UI audit. Weekly digest posts to Inbox. Community replies wired (view + compose inline). Stoic reflection save on passage card. History detail view complete (food, reflections, grades, trackers, journal, anomalies). assign_passages.py + calorie_correction.py cron jobs built. F3 sync moved server-side (token no longer in mobile bundle). Migration 019: calorie_correction_factor column. |
 
 ---
 
 ## 8. Current Build State
 
-**Platform Version:** 1.4.0
-**Last Claude Code Session:** Quick wins round 2 (2026-04-07)
-**Current Step:** AI learning loop wired end-to-end. Member Inbox + streak. Chef web Settings + Stoic CRUD.
+**Platform Version:** 1.5.0
+**Last Claude Code Session:** Gap audit + plug holes (2026-04-09)
+**Current Step:** All unsurfaced features wired to UI. 4 cron jobs ready (2 existing + 2 new).
 **Next Action:** Deploy web/ to Railway with chef.flamsanct.com domain. Brand assets. EAS production build.
 
 ---
@@ -265,6 +266,7 @@ Increment on each Claude Code session that produces shippable code.
 | 1.2.1 | 2026-04-07 | AM/PM time-of-day cutoff (4 PM), evening-first ordering with catch-up at bottom (drops AM mood). |
 | 1.3.0 | 2026-04-07 | Sleep quality null-safe save. Member Progress: weight sparkline + body photo timeline + Goals UI (full CRUD). Admin Insights tab — aggregates AI key points by category, shows recurring patterns for prompt refinement. New table: prompt_modifications. |
 | 1.4.0 | 2026-04-07 | Prompt approval flow wired into AI summon (admin → permanent Claude refinements). Stoic edit/deactivate (tap to edit, long-press to deactivate). Daily streak badge in Today header. Member Inbox tab for AI insights. Chef web Settings page. |
+| 1.5.0 | 2026-04-09 | Gap audit: weekly digest → Inbox, community replies UI, Stoic reflection save, full History detail, assign_passages.py, calorie_correction.py, F3 sync server-side, migration 019. |
 
 **Versioning convention:**
 `0.X.0` — major spec or architecture additions during pre-launch

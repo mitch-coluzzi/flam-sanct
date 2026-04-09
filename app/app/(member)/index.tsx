@@ -74,6 +74,8 @@ export default function TodayScreen() {
   const [pmReflection, setPmReflection] = useState("");
   const [eveningMood, setEveningMood] = useState<number | null>(null);
   const [passage, setPassage] = useState<any>(null);
+  const [stoicReflection, setStoicReflection] = useState("");
+  const [stoicReflectionSaved, setStoicReflectionSaved] = useState(false);
   const [abstainHit, setAbstainHit] = useState<boolean | null>(null);
   const [growthHit, setGrowthHit] = useState<boolean | null>(null);
   const [lifeEvent, setLifeEvent] = useState("");
@@ -147,6 +149,8 @@ export default function TodayScreen() {
       setAmReflection(logData.am_reflection || "");
       setPmReflection(logData.pm_reflection || "");
       setJournalText(logData.journal_note || "");
+      setStoicReflection(logData.stoic_reflection || "");
+      setStoicReflectionSaved(!!logData.stoic_reflection);
 
       // Stoic passage — assigned or fallback
       let p = null;
@@ -205,6 +209,15 @@ export default function TodayScreen() {
   const allDone = morningDone && eveningDone;
 
   // ── Handlers ──
+
+  const saveStoicReflection = async () => {
+    if (!userId || !log || !stoicReflection.trim()) return;
+    await supabase.from("daily_logs").update({
+      stoic_reflection: stoicReflection.trim(),
+      updated_at: new Date().toISOString(),
+    }).eq("id", log.id);
+    setStoicReflectionSaved(true);
+  };
 
   const submitMorning = async () => {
     if (!userId || !log) return;
@@ -430,43 +443,16 @@ export default function TodayScreen() {
     if (!userId || !profile?.f3_name) return;
     Alert.alert("Syncing F3...", "Pulling your attendance from F3 Nation.");
     try {
-      const hdrs = { Authorization: "Bearer f3_da4d22544cb46c310a473020cd3bb9197d89ac62323f2453", Client: "flamsanct" };
-      const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
-      const evResp = await fetch(`https://api.f3nation.com/v1/event-instance?regionOrgId=36348&startDate=${startDate}&endDate=${TODAY}&pageSize=50`, { headers: hdrs });
-      const evJson = await evResp.json();
-      const events = Array.isArray(evJson) ? evJson : evJson?.eventInstances || evJson?.data || [];
-      const locResp = await fetch("https://api.f3nation.com/v1/location?regionIds=36348&statuses=active&pageSize=50", { headers: hdrs });
-      const locJson = await locResp.json();
-      const locs = Array.isArray(locJson) ? locJson : locJson?.locations || locJson?.data || [];
-      const aoMap: Record<string, string> = {};
-      locs.forEach((l: any) => { if (l.id) aoMap[String(l.id)] = l.locationName?.replace(/F3 Des Moines[- ]*/i, "").trim() || "Unknown"; });
-      let synced = 0;
-      const f3Lower = profile.f3_name.toLowerCase();
-      for (const e of events) {
-        if (!e.id || !e.startDate || e.startDate > TODAY) continue;
-        for (const planned of [false, true]) {
-          const attResp = await fetch(`https://api.f3nation.com/v1/attendance/event-instance/${e.id}?isPlanned=${planned}`, { headers: hdrs });
-          const attJson = await attResp.json();
-          const recs = Array.isArray(attJson) ? attJson : attJson?.attendance || [];
-          const match = recs.find((r: any) => (r.user?.f3Name || r.user?.name || "").replace(/F3 Des Moines[- ]*/i, "").trim().toLowerCase() === f3Lower);
-          if (!match) continue;
-          const aoName = aoMap[String(e.locationId || e.orgId || "")] || "F3 Workout";
-          const { data: ex } = await supabase.from("workouts").select("id").eq("user_id", userId).eq("log_date", e.startDate).eq("f3_ao", aoName).limit(1);
-          if (ex && ex.length > 0) break;
-          const wKg = (log?.weight_lbs || 185) * 0.453592;
-          const estCal = Math.round(8.0 * wKg * (45 / 60) * (0.7 + (7 / 10 * 0.6)));
-          const isQ = (match.attendanceTypes || []).some((a: any) => a.type === "Q");
-          let qName = null;
-          if (!isQ) { const qr = recs.find((r: any) => (r.attendanceTypes || []).some((a: any) => a.type === "Q")); if (qr) qName = (qr.user?.f3Name || "").replace(/F3 Des Moines[- ]*/i, "").trim(); }
-          await supabase.from("workouts").insert({ user_id: userId, log_date: e.startDate, workout_type: "f3", workout_label: `F3 — ${aoName}`, duration_minutes: 45, rpe: 7, estimated_calories_burned: estCal, is_f3: true, f3_ao: aoName, f3_q: isQ ? profile.f3_name : qName, notes: "Auto-synced from F3 Nation" });
-          const { data: dl } = await supabase.from("daily_logs").select("id").eq("user_id", userId).eq("log_date", e.startDate).limit(1);
-          if (!dl || dl.length === 0) await supabase.from("daily_logs").insert({ user_id: userId, log_date: e.startDate });
-          synced++; break;
-        }
-      }
-      Alert.alert("F3 Sync", `${synced} workout${synced !== 1 ? "s" : ""} synced.`);
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch("https://api.flamsanct.com/v1/workouts/f3-sync?days=7", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session?.access_token}`, "Content-Type": "application/json" },
+      });
+      const json = await resp.json();
+      const result = json.data || { synced: 0 };
+      Alert.alert("F3 Sync", `${result.synced} workout${result.synced !== 1 ? "s" : ""} synced.`);
       loadToday();
-    } catch { Alert.alert("Sync failed", "Couldn't reach F3 Nation API."); }
+    } catch { Alert.alert("Sync failed", "Couldn't reach the server."); }
   };
 
   const caloriesOut = workouts.reduce((s: number, w: any) => s + (w.estimated_calories_burned || 0), 0);
@@ -810,6 +796,29 @@ export default function TodayScreen() {
           <Text style={st.cardTitle}>Today's Passage</Text>
           <Text style={st.passage}>"{passage.passage}"</Text>
           <Text style={st.attribution}>— {passage.author}{passage.source ? `, ${passage.source}` : ""}</Text>
+          {stoicReflectionSaved ? (
+            <View style={{ marginTop: 12, paddingTop: 10, borderTopWidth: 0.5, borderTopColor: "#3D3C38" }}>
+              <Text style={{ fontSize: 10, fontWeight: "700", color: "#5C5A54", letterSpacing: 1.5, marginBottom: 4 }}>YOUR REFLECTION</Text>
+              <Text style={{ fontSize: 14, color: "#F0EDE6", lineHeight: 20, fontStyle: "italic" }}>"{stoicReflection}"</Text>
+            </View>
+          ) : (
+            <View style={{ marginTop: 12 }}>
+              <TextInput
+                style={[st.input, { minHeight: 50, textAlignVertical: "top" }]}
+                placeholder="What does this mean for you today?"
+                placeholderTextColor="#5C5A54"
+                value={stoicReflection}
+                onChangeText={setStoicReflection}
+                multiline
+                maxLength={500}
+              />
+              {stoicReflection.trim().length > 0 && (
+                <TouchableOpacity style={[st.cta, { marginTop: 8 }]} onPress={saveStoicReflection}>
+                  <Text style={st.ctaText}>Save Reflection</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
       )}
 
