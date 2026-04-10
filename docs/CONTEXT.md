@@ -219,21 +219,17 @@ Updated at the end of each Claude Code session.
 ## 8. Current Build State
 
 **Platform Version:** 1.5.0
-**Last Claude Code Session:** Gap audit + plug holes (2026-04-09)
-**Current Step:** All unsurfaced features wired to UI. 4 cron jobs ready (2 existing + 2 new).
-**Next Action:** Deploy web/ to Railway with chef.flamsanct.com domain. Brand assets. EAS production build.
+**Last Claude Code Session:** Gap audit + EAS build fixes (2026-04-10)
+**Current Step:** All unsurfaced features wired to UI. 4 cron jobs ready. EAS Android build in progress.
+**Next Action:** Verify EAS preview build installs + runs on Android. Deploy web/ to Railway. Brand assets.
 
 ---
 
 ## 9. Known Issues & Carry-Forward Items
 
-None yet. This section tracks open bugs and carry-forward tasks between sessions.
-
-Format:
-```
-- [OPEN] Description of issue (discovered Session X)
-- [RESOLVED] Description of fix (Session Y)
-```
+- [RESOLVED] EAS Android build failed — react-native-gesture-handler 2.27.2 C++ incompatibility with RN 0.81.5 new arch. Bumped to 2.31.1. (Session 1.5.0)
+- [RESOLVED] EAS preview APK crashed on launch — EXPO_PUBLIC_* env vars not set on EAS. Local .env doesn't carry to EAS builds. Fix: eas env:create for all 3 vars on preview environment. (Session 1.5.0)
+- [OPEN] Awaiting rebuild with EAS env vars set — verify APK installs and runs on Android. (Session 1.5.0)
 
 ---
 
@@ -267,6 +263,7 @@ Increment on each Claude Code session that produces shippable code.
 | 1.3.0 | 2026-04-07 | Sleep quality null-safe save. Member Progress: weight sparkline + body photo timeline + Goals UI (full CRUD). Admin Insights tab — aggregates AI key points by category, shows recurring patterns for prompt refinement. New table: prompt_modifications. |
 | 1.4.0 | 2026-04-07 | Prompt approval flow wired into AI summon (admin → permanent Claude refinements). Stoic edit/deactivate (tap to edit, long-press to deactivate). Daily streak badge in Today header. Member Inbox tab for AI insights. Chef web Settings page. |
 | 1.5.0 | 2026-04-09 | Gap audit: weekly digest → Inbox, community replies UI, Stoic reflection save, full History detail, assign_passages.py, calorie_correction.py, F3 sync server-side, migration 019. |
+| 1.5.0-fix | 2026-04-10 | EAS build fixes: gesture-handler bumped 2.27.2→2.31.1 (RN 0.81 new arch compat). EAS env vars must be set via eas env:create (EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY, EXPO_PUBLIC_API_BASE_URL) on preview profile. |
 
 **Versioning convention:**
 `0.X.0` — major spec or architecture additions during pre-launch
